@@ -307,12 +307,12 @@ const AdminStaffDetail = () => {
                   const dayName = new Date(day).toLocaleString("default", {
                     weekday: "short",
                   });
-                  const isSunday = new Date(day).getDay() === 0;
+                  const isFriday = new Date(day).getDay() === 5;
                   return (
                     <tr
                       key={index}
                       style={{
-                        backgroundColor: isSunday
+                        backgroundColor: isFriday
                           ? "#fff3cd"
                           : record?.inTime
                             ? "#d4edda"

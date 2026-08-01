@@ -120,13 +120,13 @@ const AdminStaffMonthlyReport = () => {
                 </th>
                 {days.map((d) => {
                   const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-                  const isSunday = new Date(dateStr).getDay() === 0;
+                  const isFriday = new Date(dateStr).getDay() === 5;
                   return (
                     <th
                       key={d}
                       style={{
                         textAlign: "center",
-                        backgroundColor: isSunday ? "#fff3cd" : "#f8f9fa",
+                        backgroundColor: isFriday ? "#fff3cd" : "#f8f9fa",
                         minWidth: "32px",
                       }}
                     >
@@ -160,7 +160,7 @@ const AdminStaffMonthlyReport = () => {
                       const record = item.attendance.find(
                         (a) => a.date === dateStr
                       );
-                      const isSunday = new Date(dateStr).getDay() === 0;
+                      const isFriday = new Date(dateStr).getDay() === 5;
                       const isPresent = record?.inTime;
                       if (isPresent) presentCount++;
                       return (
@@ -168,7 +168,7 @@ const AdminStaffMonthlyReport = () => {
                           key={d}
                           style={{
                             textAlign: "center",
-                            backgroundColor: isSunday
+                            backgroundColor: isFriday
                               ? "#fff3cd"
                               : isPresent
                                 ? "#d4edda"
@@ -182,7 +182,7 @@ const AdminStaffMonthlyReport = () => {
                               : "Absent"
                           }
                         >
-                          {isSunday ? "S" : isPresent ? "P" : "A"}
+                          {isFriday ? "F" : isPresent ? "P" : "A"}
                         </td>
                       );
                     })}
