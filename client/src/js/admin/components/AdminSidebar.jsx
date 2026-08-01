@@ -4,6 +4,9 @@ import ReceiptIcon from "@mui/icons-material/Receipt";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import HistoryIcon from "@mui/icons-material/History";
+import BadgeIcon from "@mui/icons-material/Badge";
+import EventNoteIcon from "@mui/icons-material/EventNote";
+import AssessmentIcon from "@mui/icons-material/Assessment";
 import { Link, useLocation } from "react-router-dom";
 import "./AdminSidebar.css";
 
@@ -43,6 +46,13 @@ const AdminSidebar = () => {
     if (
       path === "/admin-users" &&
       currentPath.startsWith("/admin-edit-user")
+    )
+      return true;
+    if (
+      path === "/admin-staff" &&
+      (currentPath.startsWith("/admin-add-staff") ||
+        currentPath.startsWith("/admin-edit-staff") ||
+        currentPath.startsWith("/admin-staff-detail"))
     )
       return true;
     return false;
@@ -101,6 +111,33 @@ const AdminSidebar = () => {
           <Link to="/admin-users">
             <GroupIcon className="me-2" />
             Customers
+          </Link>
+        </li>
+      </ul>
+      <span className="text-white">
+        <small>STAFF</small>
+      </span>
+      <ul>
+        <li className={`${isActive("/admin-staff") ? "active" : ""}`}>
+          <Link to="/admin-staff">
+            <BadgeIcon className="me-2" />
+            Staff
+          </Link>
+        </li>
+        <li
+          className={`${isActive("/admin-staff-attendance") ? "active" : ""}`}
+        >
+          <Link to="/admin-staff-attendance">
+            <EventNoteIcon className="me-2" />
+            Attendance
+          </Link>
+        </li>
+        <li
+          className={`${isActive("/admin-staff-monthly-report") ? "active" : ""}`}
+        >
+          <Link to="/admin-staff-monthly-report">
+            <AssessmentIcon className="me-2" />
+            Monthly Report
           </Link>
         </li>
       </ul>

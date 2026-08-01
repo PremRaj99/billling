@@ -26,6 +26,7 @@ const AdminLayout = ({ showOnlyTable = false, children }) => {
       "/admin-quotation",
       "/admin-products",
       "/admin-users",
+      "/admin-staff",
     ];
     if (!listPages.includes(location.pathname)) {
       window.scrollTo(0, 0);

@@ -25,7 +25,12 @@ import AdminQuotation from "./admin/AdminQuotation";
 import AdminAddQuotation from "./admin/AdminAddQuotation";
 import AdminEditQuotation from "./admin/AdminEditQuotation";
 import AdminPrintQuotation from "./admin/AdminPrintQuotation";
-
+import AdminStaff from "./admin/AdminStaff";
+import AdminAddStaff from "./admin/AdminAddStaff";
+import AdminEditStaff from "./admin/AdminEditStaff";
+import AdminStaffDetail from "./admin/AdminStaffDetail";
+import AdminStaffAttendance from "./admin/AdminStaffAttendance";
+import AdminStaffMonthlyReport from "./admin/AdminStaffMonthlyReport";
 
 
 function App() {
@@ -184,6 +189,55 @@ function App() {
           element={
             <ProtectedRoute>
               <AdminPrintQuotation />
+            </ProtectedRoute>
+          }
+        />
+        {/* STAFF */}
+        <Route
+          path="/admin-staff"
+          element={
+            <ProtectedRoute>
+              <AdminStaff />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin-add-staff"
+          element={
+            <ProtectedRoute>
+              <AdminAddStaff />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin-edit-staff/:id?"
+          element={
+            <ProtectedRoute>
+              <AdminEditStaff />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin-staff-detail/:id?"
+          element={
+            <ProtectedRoute>
+              <AdminStaffDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin-staff-attendance"
+          element={
+            <ProtectedRoute>
+              <AdminStaffAttendance />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin-staff-monthly-report"
+          element={
+            <ProtectedRoute>
+              <AdminStaffMonthlyReport />
             </ProtectedRoute>
           }
         />
