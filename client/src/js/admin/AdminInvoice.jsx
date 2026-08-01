@@ -4,8 +4,9 @@ import { Link, useNavigate } from "react-router-dom";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PrintIcon from "@mui/icons-material/Print";
+import TransformIcon from "@mui/icons-material/Transform";
 import axios from "axios";
-import { message, Popover } from "antd";
+import { message, Popover, Tooltip } from "antd";
 import "./AdminInvoice.css";
 import { formatNumber } from "../components/numberUtils";
 import { blue } from "@mui/material/colors";
@@ -18,6 +19,28 @@ const AdminInvoice = () => {
   const [invoice, setInvoice] = useState(null);
 
   useScrollRestore(Boolean(invoice && invoice.length > 0));
+
+  const handleConvertToEstimate = async (invoiceId) => {
+    const confirmConvert = window.confirm(
+      `Do you want to convert GST Invoice ${invoiceId} into an Estimate?`
+    );
+    if (confirmConvert) {
+      try {
+        const res = await axios.post("/api/invoice/convert-to-estimate", {
+          invoiceId,
+        });
+        if (res.data.success) {
+          message.success(res.data.message);
+          navigate("/admin-estimate");
+        } else {
+          message.error(res.data.message);
+        }
+      } catch (error) {
+        console.error(error);
+        message.error("Failed to convert GST Invoice to Estimate");
+      }
+    }
+  };
   const [query, setQuery] = useState("");
   const [selectedFrom, setSelectedFrom] = useState("");
   const [selectedTo, setSelectedTo] = useState("");
@@ -333,6 +356,15 @@ const AdminInvoice = () => {
                     {!showOnlyTable && (
                       <td>
                         <div className="d-flex gap-2">
+                          <Tooltip title="Convert to Estimate">
+                            <TransformIcon
+                              style={{ cursor: "pointer" }}
+                              onClick={() =>
+                                handleConvertToEstimate(item?.invoiceId)
+                              }
+                              className="text-primary"
+                            />
+                          </Tooltip>
                           <Link
                             target="_blank"
                             to={`/admin-print-invoice/${item?.invoiceId}`}
@@ -340,6 +372,7 @@ const AdminInvoice = () => {
                             <PrintIcon className="icon text-success" />
                           </Link>
                           <EditIcon
+                            style={{ cursor: "pointer" }}
                             onClick={() =>
                               navigate(`/admin-edit-invoice/${item?.invoiceId}`)
                             }

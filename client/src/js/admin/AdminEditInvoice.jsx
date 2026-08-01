@@ -310,6 +310,29 @@ const AdminEditInvoice = () => {
     }
   }
 
+  const handleConvertToEstimate = async (invId) => {
+    const targetId = invId || invoiceId;
+    const confirmConvert = window.confirm(
+      `Do you want to convert GST Invoice ${targetId} into an Estimate?`
+    );
+    if (confirmConvert) {
+      try {
+        const res = await axios.post("/api/invoice/convert-to-estimate", {
+          invoiceId: targetId,
+        });
+        if (res.data.success) {
+          message.success(res.data.message);
+          navigate("/admin-estimate");
+        } else {
+          message.error(res.data.message);
+        }
+      } catch (error) {
+        console.error(error);
+        message.error("Failed to convert GST Invoice to Estimate");
+      }
+    }
+  };
+
   // Calculate Total Taxable Value, CGST, SGST, and Grand Total
   useEffect(() => {
     let taxableValue = 0;
@@ -1307,6 +1330,14 @@ const AdminEditInvoice = () => {
             className="mt-3 mx-2 b-btn py-2 mt-4"
           >
             {showSignature ? "Remove Signature" : "Add Signature"}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleConvertToEstimate(invoiceId)}
+            className="mt-3 mx-2 b-btn py-2 mt-4 text-white"
+            style={{ backgroundColor: "#0d6efd", borderColor: "#0d6efd" }}
+          >
+            Convert to Estimate
           </button>
           {!isCancelled && status !== "cancelled" ? (
             <button
