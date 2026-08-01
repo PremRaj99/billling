@@ -37,22 +37,44 @@ const AdminEstimate = () => {
     refNo: "",
   });
 
+  const initialReceiveAmountData = {
+    amount: "",
+    paymentDate: new Date().toISOString().split("T")[0],
+    paymentMethod: "phonepe",
+    refNo: "",
+  };
+
   const showModal = (bill, index) => {
     setSelectedBill(bill); // Set the selected bill's data
     setSelectedEstimateId(bill._id);
     setIsModalOpen(true); // Open the modal
     setSelectedIndex(index);
+    setShowOnlyModelTable(false);
+    setReceiveAmountData({
+      ...initialReceiveAmountData,
+      paymentDate: new Date().toISOString().split("T")[0],
+    });
   };
 
   const handleModalOK = async (e) => {
     await handleReceiveAmountDataSubmit(e, selectedEstimateId);
     setIsModalOpen(false);
     setSelectedBill(null); // Clear the selected bill data when closing the modal
+    setShowOnlyModelTable(false);
+    setReceiveAmountData({
+      ...initialReceiveAmountData,
+      paymentDate: new Date().toISOString().split("T")[0],
+    });
   };
 
   const handleModalClose = (e) => {
     setIsModalOpen(false); // Close the modal
     setSelectedBill(null); // Clear the selected bill data when closing the modal
+    setShowOnlyModelTable(false);
+    setReceiveAmountData({
+      ...initialReceiveAmountData,
+      paymentDate: new Date().toISOString().split("T")[0],
+    });
   };
 
   function handleClearFilter() {
