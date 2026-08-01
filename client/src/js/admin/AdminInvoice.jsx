@@ -9,12 +9,15 @@ import { message, Popover } from "antd";
 import "./AdminInvoice.css";
 import { formatNumber } from "../components/numberUtils";
 import { blue } from "@mui/material/colors";
+import { useScrollRestore } from "../hooks/useScrollRestore";
 
 const AdminInvoice = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [data, setData] = useState(null);
   const [invoice, setInvoice] = useState(null);
+
+  useScrollRestore(Boolean(invoice && invoice.length > 0));
   const [query, setQuery] = useState("");
   const [selectedFrom, setSelectedFrom] = useState("");
   const [selectedTo, setSelectedTo] = useState("");

@@ -9,12 +9,15 @@ import axios from "axios";
 import { message, Modal } from "antd";
 import { formatNumber } from "../components/numberUtils";
 import PaymentIcon from "@mui/icons-material/Payment";
+import { useScrollRestore } from "../hooks/useScrollRestore";
 
 const AdminEstimate = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [data, setData] = useState(null);
   const [invoice, setInvoice] = useState(null);
+
+  useScrollRestore(Boolean(invoice && invoice.length > 0));
   const [query, setQuery] = useState("");
   // const [selectedDate, setSelectedDate] = useState("");
   const [selectedFrom, setSelectedFrom] = useState("");

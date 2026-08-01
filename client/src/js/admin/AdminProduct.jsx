@@ -7,10 +7,13 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "./AdminUsers.css";
+import { useScrollRestore } from "../hooks/useScrollRestore";
 
 const AdminProduct = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState(null);
+
+  useScrollRestore(Boolean(products && products.length > 0));
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredUsers, setFilteredUsers] = useState(null);
 

@@ -12,10 +12,13 @@ import axios from "axios";
 import "./AdminUsers.css";
 import IMAGES from "../img/image";
 import { useNavigate } from "react-router-dom";
+import { useScrollRestore } from "../hooks/useScrollRestore";
 
 const AdminUsers = () => {
   const navigate = useNavigate();
   const [allUser, setAllUser] = useState(null);
+
+  useScrollRestore(Boolean(allUser && allUser.length > 0));
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredUsers, setFilteredUsers] = useState(null);
   const [form, setForm] = useState({

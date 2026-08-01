@@ -8,6 +8,8 @@ const AdminLayout = ({ showOnlyTable = false, children }) => {
   const { user } = useSelector((state) => state.user);
   const navigate = useNavigate();
 
+  const location = useLocation();
+
   useEffect(() => {
     if (user) {
       if (user.isAdmin) {
@@ -16,6 +18,19 @@ const AdminLayout = ({ showOnlyTable = false, children }) => {
       }
     }
   }, [user]);
+
+  useEffect(() => {
+    const listPages = [
+      "/admin-estimate",
+      "/admin-invoice",
+      "/admin-quotation",
+      "/admin-products",
+      "/admin-users",
+    ];
+    if (!listPages.includes(location.pathname)) {
+      window.scrollTo(0, 0);
+    }
+  }, [location.pathname]);
 
   return (
     <div className="admin-layout-container">

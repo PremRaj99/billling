@@ -9,12 +9,15 @@ import { message } from "antd";
 import "./AdminInvoice.css";
 import { formatNumber } from "../components/numberUtils";
 import { useReactToPrint } from "react-to-print";
+import { useScrollRestore } from "../hooks/useScrollRestore";
 
 const AdminQuotation = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [data, setData] = useState(null);
   const [invoice, setInvoice] = useState(null);
+
+  useScrollRestore(Boolean(invoice && invoice.length > 0));
   const [query, setQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedMonth, setSelectedMonth] = useState(null);
