@@ -333,9 +333,26 @@ const AdminEditInvoice = () => {
     }
   };
 
-  function downloadPdf() {
-    window.open("/admin-print-invoice/" + invoiceId, "_blank");
-  }
+
+  const handleToggleSignature = async () => {
+    const nextState = !showSignature;
+    setShowSignature(nextState);
+    try {
+      const res = await axios.post("/api/invoice/update-invoice", {
+        invoiceId: invoiceId,
+        hasSignature: nextState,
+      });
+      if (res.data.success) {
+        message.success(
+          nextState ? "Signature Added & Saved to DB" : "Signature Removed & Saved to DB"
+        );
+      } else {
+        message.error(res.data.message);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   // Calculate Total Taxable Value, CGST, SGST, and Grand Total
   useEffect(() => {
@@ -779,8 +796,6 @@ const AdminEditInvoice = () => {
                       />
                     )}
                     <p className="m-0 text-center">
-                      <b>Azim Art Point</b>
-                      <br />
                       <b>Authorized Signature</b>
                     </p>
                   </div>
@@ -798,7 +813,7 @@ const AdminEditInvoice = () => {
           <button
             type="button"
             className="b-btn me-2 mt-4"
-            onClick={() => setShowSignature(!showSignature)}
+            onClick={handleToggleSignature}
           >
             {showSignature ? "Remove Signature" : "Add Signature"}
           </button>
@@ -825,6 +840,13 @@ const AdminEditInvoice = () => {
                 className="b-btn ms-2"
               >
                 Preview Mode
+              </button>
+              <button
+                type="button"
+                className="b-btn ms-2"
+                onClick={handleToggleSignature}
+              >
+                {showSignature ? "Remove Signature" : "Add Signature"}
               </button>
             </div>
           </div>
@@ -1282,8 +1304,6 @@ const AdminEditInvoice = () => {
                     />
                   )}
                   <p className="m-0 text-center">
-                    <b>Azim Art Point</b>
-                    <br />
                     <b>Authorized Signature</b>
                   </p>
                 </div>
@@ -1306,7 +1326,7 @@ const AdminEditInvoice = () => {
           </button>
           <button
             type="button"
-            onClick={() => setShowSignature(!showSignature)}
+            onClick={handleToggleSignature}
             className="mt-3 mx-2 b-btn py-2 mt-4"
           >
             {showSignature ? "Remove Signature" : "Add Signature"}

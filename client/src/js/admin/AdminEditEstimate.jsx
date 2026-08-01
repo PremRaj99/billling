@@ -311,6 +311,26 @@ const AdminEditEstimate = () => {
     window.open("/admin-print-estimate/" + invoiceId, "_blank");
   }
 
+  const handleToggleSignature = async () => {
+    const nextState = !showSignature;
+    setShowSignature(nextState);
+    try {
+      const res = await axios.post("/api/estimate/update-estimate", {
+        estimateId: invoiceId,
+        hasSignature: nextState,
+      });
+      if (res.data.success) {
+        message.success(
+          nextState ? "Signature Added & Saved to DB" : "Signature Removed & Saved to DB"
+        );
+      } else {
+        message.error(res.data.message);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   // Calculate Total Taxable Value, CGST, SGST, and Grand Total
   useEffect(() => {
     let taxableValue = 0;
@@ -362,35 +382,6 @@ const AdminEditEstimate = () => {
       }));
     }
   }, [data]);
-
-  //! PDF
-  function downloadPdf() {
-    const input = pdfRef.current;
-    if (input) {
-      html2canvas(input, { scale: 2 }).then((canvas) => {
-        const imgData = canvas.toDataURL("image/png");
-        const pdf = new jsPDF("p", "mm", "a4", true);
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-        const imgWidth = canvas.width;
-        const imgHeight = canvas.height;
-        const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-        const imgX = (pdfWidth - imgWidth * ratio) / 2;
-        const imgY = 0;
-        pdf.addImage(
-          imgData,
-          "PNG",
-          imgX,
-          imgY,
-          imgWidth * ratio,
-          imgHeight * ratio
-        );
-        pdf.save(`${invoiceId}`);
-      });
-    } else {
-      console.error("PDF reference is not available.");
-    }
-  }
 
   const dateObject = new Date(invoice?.createdAt);
   const day = dateObject.getDate();
@@ -647,7 +638,7 @@ const AdminEditEstimate = () => {
           <button
             type="button"
             className="b-btn me-2 mt-4"
-            onClick={() => setShowSignature(!showSignature)}
+            onClick={handleToggleSignature}
           >
             {showSignature ? "Remove Signature" : "Add Signature"}
           </button>
@@ -674,6 +665,13 @@ const AdminEditEstimate = () => {
                 className="b-btn ms-2"
               >
                 Preview Mode
+              </button>
+              <button
+                type="button"
+                className="b-btn ms-2"
+                onClick={handleToggleSignature}
+              >
+                {showSignature ? "Remove Signature" : "Add Signature"}
               </button>
             </div>
           </div>
@@ -1077,7 +1075,7 @@ const AdminEditEstimate = () => {
           </button>
           <button
             type="button"
-            onClick={() => setShowSignature(!showSignature)}
+            onClick={handleToggleSignature}
             className="mt-3 mx-2 b-btn py-2"
           >
             {showSignature ? "Remove Signature" : "Add Signature"}

@@ -6,20 +6,31 @@ import autoTable from "jspdf-autotable";
 import { message } from "antd";
 import { formatNumber } from "../components/numberUtils";
 
-const getImageDataUrl = async (url) => {
+const getImageDetails = async (url) => {
   try {
     const res = await fetch(url);
-    if (!res.ok) return url;
+    if (!res.ok) return { dataUrl: url, width: 100, height: 50 };
     const blob = await res.blob();
     return new Promise((resolve) => {
       const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = () => resolve(url);
+      reader.onloadend = () => {
+        const dataUrl = reader.result;
+        const img = new Image();
+        img.onload = () => {
+          resolve({
+            dataUrl,
+            width: img.naturalWidth || img.width || 100,
+            height: img.naturalHeight || img.height || 50,
+          });
+        };
+        img.onerror = () => resolve({ dataUrl, width: 100, height: 50 });
+        img.src = dataUrl;
+      };
+      reader.onerror = () => resolve({ dataUrl: url, width: 100, height: 50 });
       reader.readAsDataURL(blob);
     });
   } catch (e) {
-    console.error("Fetch image error:", e);
-    return url;
+    return { dataUrl: url, width: 100, height: 50 };
   }
 };
 
@@ -85,13 +96,13 @@ const AdminPrintQuotation = () => {
 
       let currentY = 8;
 
-      // Load images
-      const topImgData = await getImageDataUrl(topImageUrl);
-      const bottomImgData = await getImageDataUrl(bottomImageUrl);
+      // Load images with natural dimensions
+      const topImg = await getImageDetails(topImageUrl);
+      const bottomImg = await getImageDetails(bottomImageUrl);
 
       // Header Image
       try {
-        doc.addImage(topImgData, "JPEG", 8, currentY, 195, 60);
+        doc.addImage(topImg.dataUrl, "JPEG", 8, currentY, 195, 60);
       } catch (e) {
         console.error("Failed to add header image:", e);
       }
@@ -184,14 +195,13 @@ const AdminPrintQuotation = () => {
 
       // Bottom Image and Signature
       try {
-        doc.addImage(bottomImgData, "JPEG", 8, pageHeight - 16, 195, 10);
+        doc.addImage(bottomImg.dataUrl, "JPEG", 8, pageHeight - 16, 195, 10);
       } catch (e) {
         console.error("Failed to add bottom image:", e);
       }
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9);
-      doc.text("Azim Art Point", 155, pageHeight - 20);
       doc.text("Authorized Signature", 150, pageHeight - 16);
 
       const pdfBlob = doc.output("blob");

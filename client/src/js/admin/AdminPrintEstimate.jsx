@@ -6,20 +6,31 @@ import autoTable from "jspdf-autotable";
 import { message } from "antd";
 import { formatNumber } from "../components/numberUtils";
 
-const getImageDataUrl = async (url) => {
+const getImageDetails = async (url) => {
   try {
     const res = await fetch(url);
-    if (!res.ok) return url;
+    if (!res.ok) return { dataUrl: url, width: 100, height: 50 };
     const blob = await res.blob();
     return new Promise((resolve) => {
       const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = () => resolve(url);
+      reader.onloadend = () => {
+        const dataUrl = reader.result;
+        const img = new Image();
+        img.onload = () => {
+          resolve({
+            dataUrl,
+            width: img.naturalWidth || img.width || 100,
+            height: img.naturalHeight || img.height || 50,
+          });
+        };
+        img.onerror = () => resolve({ dataUrl, width: 100, height: 50 });
+        img.src = dataUrl;
+      };
+      reader.onerror = () => resolve({ dataUrl: url, width: 100, height: 50 });
       reader.readAsDataURL(blob);
     });
   } catch (e) {
-    console.error("Fetch image error:", e);
-    return url;
+    return { dataUrl: url, width: 100, height: 50 };
   }
 };
 
@@ -89,14 +100,14 @@ const AdminPrintEstimate = () => {
 
       let currentY = 8;
 
-      // Load images
-      const topImgData = await getImageDataUrl(topImageUrl);
-      const bottomImgData = await getImageDataUrl(bottomImageUrl);
-      const signImgData = hasSignature ? await getImageDataUrl(signImageUrl) : null;
+      // Load images with natural dimensions
+      const topImg = await getImageDetails(topImageUrl);
+      const bottomImg = await getImageDetails(bottomImageUrl);
+      const signImg = hasSignature ? await getImageDetails(signImageUrl) : null;
 
       // Header Image
       try {
-        doc.addImage(topImgData, "JPEG", 8, currentY, 195, 60);
+        doc.addImage(topImg.dataUrl, "JPEG", 8, currentY, 195, 60);
       } catch (e) {
         console.error("Failed to add top header image:", e);
       }
@@ -116,10 +127,10 @@ const AdminPrintEstimate = () => {
       doc.text(`Address:      ${billingTo?.address || ""}`, 14, currentY);
       const formattedDate = invoice?.createdAt
         ? new Intl.DateTimeFormat("en-IN", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-          }).format(new Date(invoice.createdAt))
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        }).format(new Date(invoice.createdAt))
         : "";
       doc.text(`Date:              ${formattedDate}`, 140, currentY);
       currentY += 6;
@@ -264,24 +275,32 @@ const AdminPrintEstimate = () => {
       currentY += 5;
       doc.text("IFSC Code: BKID0004699", 16, currentY);
 
-      // Signature & Footer Image
-      if (hasSignature && signImgData) {
+      // Signature & Footer Image (Preserving natural aspect ratio for signature)
+      if (hasSignature && signImg && signImg.dataUrl) {
         try {
-          doc.addImage(signImgData, "PNG", 150, pageHeight - 35, 45, 18);
+          const signWidth = 38;
+          const signHeight = (signImg.height / signImg.width) * signWidth;
+          doc.addImage(
+            signImg.dataUrl,
+            "PNG",
+            152,
+            pageHeight - 20 - signHeight,
+            signWidth,
+            signHeight
+          );
         } catch (e) {
           console.error("Failed to add signature image:", e);
         }
       }
 
       try {
-        doc.addImage(bottomImgData, "JPEG", 8, pageHeight - 16, 195, 10);
+        doc.addImage(bottomImg.dataUrl, "JPEG", 8, pageHeight - 16, 195, 10);
       } catch (e) {
         console.error("Failed to add bottom image:", e);
       }
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9);
-      doc.text("Azim Art Point", 155, pageHeight - 20);
       doc.text("Authorized Signature", 150, pageHeight - 16);
 
       const pdfBlob = doc.output("blob");

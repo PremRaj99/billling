@@ -6,21 +6,74 @@ import autoTable from "jspdf-autotable";
 import { message } from "antd";
 import { formatNumber } from "../components/numberUtils";
 
-const getImageDataUrl = async (url) => {
+const getImageDetails = async (url) => {
   try {
     const res = await fetch(url);
-    if (!res.ok) return url;
+    if (!res.ok) return { dataUrl: url, width: 100, height: 50 };
     const blob = await res.blob();
     return new Promise((resolve) => {
       const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = () => resolve(url);
+      reader.onloadend = () => {
+        const dataUrl = reader.result;
+        const img = new Image();
+        img.onload = () => {
+          resolve({
+            dataUrl,
+            width: img.naturalWidth || img.width || 100,
+            height: img.naturalHeight || img.height || 50,
+          });
+        };
+        img.onerror = () => resolve({ dataUrl, width: 100, height: 50 });
+        img.src = dataUrl;
+      };
+      reader.onerror = () => resolve({ dataUrl: url, width: 100, height: 50 });
       reader.readAsDataURL(blob);
     });
   } catch (e) {
-    console.error("Fetch image error:", e);
-    return url;
+    return { dataUrl: url, width: 100, height: 50 };
   }
+};
+
+const createCancelledStamp = () => {
+  const canvas = document.createElement("canvas");
+  canvas.width = 750;
+  canvas.height = 240;
+  const ctx = canvas.getContext("2d");
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Dashed border matching 8px dashed rgba(220, 53, 69, 0.4)
+  ctx.strokeStyle = "rgba(220, 53, 69, 0.5)";
+  ctx.lineWidth = 8;
+  ctx.setLineDash([18, 12]);
+
+  // Rounded rectangle
+  const x = 12;
+  const y = 12;
+  const w = canvas.width - 24;
+  const h = canvas.height - 24;
+  const r = 24;
+
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+  ctx.stroke();
+
+  // Reset line dash
+  ctx.setLineDash([]);
+
+  // Text matching color: rgba(220, 53, 69, 0.6), letterSpacing
+  ctx.font = "900 68px Arial, sans-serif";
+  ctx.fillStyle = "rgba(220, 53, 69, 0.6)";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("C A N C E L L E D", canvas.width / 2, canvas.height / 2 + 2);
+
+  return canvas.toDataURL("image/png");
 };
 
 const AdminPrintInvoice = () => {
@@ -97,34 +150,21 @@ const AdminPrintInvoice = () => {
     try {
       const doc = new jsPDF("p", "mm", "a4");
       const pageHeight = doc.internal.pageSize.height;
-      const pageWidth = doc.internal.pageSize.width;
 
       let currentY = 8;
 
-      // Load banner images safely
-      const topImgData = await getImageDataUrl(topImageUrl);
-      const bottomImgData = await getImageDataUrl(bottomImageUrl);
-      const signImgData = hasSignature ? await getImageDataUrl(signImageUrl) : null;
+      // Load banner images with natural dimensions
+      const topImg = await getImageDetails(topImageUrl);
+      const bottomImg = await getImageDetails(bottomImageUrl);
+      const signImg = hasSignature ? await getImageDetails(signImageUrl) : null;
 
       // Header Image
       try {
-        doc.addImage(topImgData, "JPEG", 8, currentY, 195, 60);
+        doc.addImage(topImg.dataUrl, "JPEG", 8, currentY, 195, 60);
       } catch (e) {
         console.error("Failed to add top header image to PDF:", e);
       }
       currentY += 68;
-
-      // Cancelled stamp if applicable
-      if (isCancelled || status === "cancelled") {
-        doc.setFontSize(36);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(220, 53, 69);
-        doc.text("CANCELLED", pageWidth / 2, currentY + 15, {
-          align: "center",
-          angle: 15,
-        });
-        doc.setTextColor(0, 0, 0);
-      }
 
       // Billing Details
       doc.setFontSize(10);
@@ -300,25 +340,43 @@ const AdminPrintInvoice = () => {
       currentY += 5;
       doc.text("IFSC Code: BKID0004699", 16, currentY);
 
-      // Signature & Footer Image
-      if (hasSignature && signImgData) {
+      // Signature & Footer Image (Preserving natural aspect ratio for signature)
+      if (hasSignature && signImg && signImg.dataUrl) {
         try {
-          doc.addImage(signImgData, "PNG", 150, pageHeight - 35, 45, 18);
+          const signWidth = 38;
+          const signHeight = (signImg.height / signImg.width) * signWidth;
+          doc.addImage(
+            signImg.dataUrl,
+            "PNG",
+            152,
+            pageHeight - 20 - signHeight,
+            signWidth,
+            signHeight
+          );
         } catch (e) {
           console.error("Failed to add signature image:", e);
         }
       }
 
       try {
-        doc.addImage(bottomImgData, "JPEG", 8, pageHeight - 16, 195, 10);
+        doc.addImage(bottomImg.dataUrl, "JPEG", 8, pageHeight - 16, 195, 10);
       } catch (e) {
         console.error("Failed to add bottom image:", e);
       }
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9);
-      doc.text("Azim Art Point", 155, pageHeight - 20);
       doc.text("Authorized Signature", 150, pageHeight - 16);
+
+      // Cancelled stamp watermark overlay if applicable
+      if (isCancelled || status === "cancelled") {
+        try {
+          const stampDataUrl = createCancelledStamp();
+          doc.addImage(stampDataUrl, "PNG", 38, 110, 134, 43, undefined, "FAST", -30);
+        } catch (e) {
+          console.error("Failed to add CANCELLED stamp:", e);
+        }
+      }
 
       const pdfBlob = doc.output("blob");
       const blobUrl = URL.createObjectURL(pdfBlob);
