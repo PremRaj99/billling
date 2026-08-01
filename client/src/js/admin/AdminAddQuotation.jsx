@@ -633,7 +633,7 @@ const AdminAddQuotation = () => {
             <div className="add-invoice-container">
               <button
                 className="b-btn py-2"
-                onClick={() => navigate("/admin-estimate")}
+                onClick={() => navigate("/admin-quotation")}
               >
                 Back
               </button>

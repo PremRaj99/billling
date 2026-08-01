@@ -75,6 +75,9 @@
   color: #333;
   font-weight: 600;
 }
+.admin-sidemenu-container li.active a {
+  color: var(--s) !important;
+}
 .admin-sidemenu-container .cancel-icon {
   font-size: 50px;
   width: 100%;

@@ -10,6 +10,44 @@ import "./AdminSidebar.css";
 const AdminSidebar = () => {
   const location = useLocation();
 
+  const isActive = (path) => {
+    const currentPath = location.pathname;
+    if (currentPath === path) return true;
+    if (
+      path === "/admin-products" &&
+      (currentPath.startsWith("/admin-add-product") ||
+        currentPath.startsWith("/admin-edit-product"))
+    )
+      return true;
+    if (
+      path === "/admin-quotation" &&
+      (currentPath.startsWith("/admin-add-quotation") ||
+        currentPath.startsWith("/admin-edit-quotation") ||
+        currentPath.startsWith("/admin-print-quotation"))
+    )
+      return true;
+    if (
+      path === "/admin-estimate" &&
+      (currentPath.startsWith("/admin-add-estimate") ||
+        currentPath.startsWith("/admin-edit-estimate") ||
+        currentPath.startsWith("/admin-print-estimate"))
+    )
+      return true;
+    if (
+      path === "/admin-invoice" &&
+      (currentPath.startsWith("/admin-add-invoice") ||
+        currentPath.startsWith("/admin-edit-invoice") ||
+        currentPath.startsWith("/admin-print-invoice"))
+    )
+      return true;
+    if (
+      path === "/admin-users" &&
+      currentPath.startsWith("/admin-edit-user")
+    )
+      return true;
+    return false;
+  };
+
   return (
     <div className="admin-sidebar-container">
       <span className="text-white">
@@ -17,7 +55,7 @@ const AdminSidebar = () => {
       </span>
       <ul>
         <li
-          className={`${location.pathname === "/admin-dashboard" && "active"}`}
+          className={`${isActive("/admin-dashboard") ? "active" : ""}`}
         >
           <Link to="/admin-dashboard">
             <DashboardIcon className="me-2" />
@@ -30,7 +68,7 @@ const AdminSidebar = () => {
       </span>
       <ul>
         <li
-          className={`${location.pathname === "/admin-products" && "active"}`}
+          className={`${isActive("/admin-products") ? "active" : ""}`}
         >
           <Link to="/admin-products">
             <InventoryIcon className="me-2" />
@@ -38,7 +76,7 @@ const AdminSidebar = () => {
           </Link>
         </li>
         <li
-          className={`${location.pathname === "/admin-quotation" && "active"}`}
+          className={`${isActive("/admin-quotation") ? "active" : ""}`}
         >
           <Link to="/admin-quotation">
             <ReceiptIcon className="me-2" />
@@ -46,41 +84,25 @@ const AdminSidebar = () => {
           </Link>
         </li>
         <li
-          className={`${location.pathname === "/admin-estimate" && "active"}`}
+          className={`${isActive("/admin-estimate") ? "active" : ""}`}
         >
           <Link to="/admin-estimate">
             <ReceiptIcon className="me-2" />
             Estimate
           </Link>
         </li>
-        {/* <li
-          className={`${
-            location.pathname === "/admin-estimate-history" && "active"
-          }`}
-        >
-          <Link to="/admin-estimate-history">
-            <HistoryIcon className="me-2" />
-            Estimate History
-          </Link>
-        </li> */}
-        <li className={`${location.pathname === "/admin-invoice" && "active"}`}>
+        <li className={`${isActive("/admin-invoice") ? "active" : ""}`}>
           <Link to="/admin-invoice">
             <ReceiptIcon className="me-2" />
             GST Bill
           </Link>
         </li>
-        <li className={`${location.pathname === "/admin-users" && "active"}`}>
+        <li className={`${isActive("/admin-users") ? "active" : ""}`}>
           <Link to="/admin-users">
             <GroupIcon className="me-2" />
             Customers
           </Link>
         </li>
-        {/* <li className={`${location.pathname === "/" && "active"}`}>
-          <Link to="/admin-bulk-email">
-            <EmailIcon className="me-2" />
-            Bulk Email
-          </Link>
-        </li> */}
       </ul>
     </div>
   );

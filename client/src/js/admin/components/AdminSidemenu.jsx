@@ -4,9 +4,49 @@ import GroupIcon from "@mui/icons-material/Group";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import CancelIcon from "@mui/icons-material/Cancel";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 const AdminSidemenu = ({ menu, setMenu }) => {
+  const location = useLocation();
+
+  const isActive = (path) => {
+    const currentPath = location.pathname;
+    if (currentPath === path) return true;
+    if (
+      path === "/admin-products" &&
+      (currentPath.startsWith("/admin-add-product") ||
+        currentPath.startsWith("/admin-edit-product"))
+    )
+      return true;
+    if (
+      path === "/admin-quotation" &&
+      (currentPath.startsWith("/admin-add-quotation") ||
+        currentPath.startsWith("/admin-edit-quotation") ||
+        currentPath.startsWith("/admin-print-quotation"))
+    )
+      return true;
+    if (
+      path === "/admin-estimate" &&
+      (currentPath.startsWith("/admin-add-estimate") ||
+        currentPath.startsWith("/admin-edit-estimate") ||
+        currentPath.startsWith("/admin-print-estimate"))
+    )
+      return true;
+    if (
+      path === "/admin-invoice" &&
+      (currentPath.startsWith("/admin-add-invoice") ||
+        currentPath.startsWith("/admin-edit-invoice") ||
+        currentPath.startsWith("/admin-print-invoice"))
+    )
+      return true;
+    if (
+      path === "/admin-users" &&
+      currentPath.startsWith("/admin-edit-user")
+    )
+      return true;
+    return false;
+  };
+
   return (
     <div className={`admin-sidemenu-container ${menu && "active"}`}>
       <CancelIcon
@@ -14,31 +54,31 @@ const AdminSidemenu = ({ menu, setMenu }) => {
         className="text-dark cancel-icon"
       />
       <ul className="sidemenu-ul">
-        <li>
+        <li className={`${isActive("/admin-products") ? "active" : ""}`}>
           <Link to="/admin-products">
             <InventoryIcon className="me-2" />
             Products
           </Link>
         </li>
-        <li>
+        <li className={`${isActive("/admin-quotation") ? "active" : ""}`}>
           <Link to="/admin-quotation">
             <ReceiptIcon className="me-2" />
             Quotation
           </Link>
         </li>
-        <li>
+        <li className={`${isActive("/admin-estimate") ? "active" : ""}`}>
           <Link to="/admin-estimate">
             <ReceiptIcon className="me-2" />
             Estimate
           </Link>
         </li>
-        <li>
+        <li className={`${isActive("/admin-invoice") ? "active" : ""}`}>
           <Link to="/admin-invoice">
             <ReceiptIcon className="me-2" />
             GST Bill
           </Link>
         </li>
-        <li>
+        <li className={`${isActive("/admin-users") ? "active" : ""}`}>
           <Link to="/admin-users">
             <GroupIcon className="me-2" />
             Customers
