@@ -220,8 +220,57 @@ const AdminEstimate = () => {
       } else {
         message.error(res.data.message);
       }
-    } catch {
-      message.error(error);
+    } catch (error) {
+      message.error(error?.message || "An error occurred");
+    }
+  };
+
+  const handleDeleteReceivePayment = async (paymentId) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this payment record?"
+    );
+    if (confirmDelete) {
+      try {
+        const res = await axios.delete(`/api/receivePayment/${paymentId}`);
+        if (res.data.success) {
+          message.success(res.data.message);
+          if (
+            res.data.advancePayment !== undefined &&
+            res.data.balancePayment !== undefined
+          ) {
+            setSelectedBill((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    totalValue: res.data.totalValue,
+                    advancePayment: res.data.advancePayment,
+                    balancePayment: res.data.balancePayment,
+                  }
+                : null
+            );
+            setInvoice((prevInvoice) => {
+              if (!prevInvoice || selectedIndex === null) return prevInvoice;
+              const updatedInvoice = [...prevInvoice];
+              if (updatedInvoice[selectedIndex]) {
+                updatedInvoice[selectedIndex] = {
+                  ...updatedInvoice[selectedIndex],
+                  totalValue: res.data.totalValue,
+                  advancePayment: res.data.advancePayment,
+                  balancePayment: res.data.balancePayment,
+                };
+              }
+              return updatedInvoice;
+            });
+          }
+          getReceiveAmountHistory(selectedEstimateId);
+          getAllInvoice();
+        } else {
+          message.error(res.data.message);
+        }
+      } catch (error) {
+        console.log(error);
+        message.error("Error deleting payment");
+      }
     }
   };
 
@@ -751,7 +800,7 @@ const AdminEstimate = () => {
                       >
                         <DeleteIcon
                             style={{ cursor: "pointer" }}
-                            onClick={() => {}}
+                            onClick={() => handleDeleteReceivePayment(bill._id)}
                             className="text-danger"
                           />
                       </td>
