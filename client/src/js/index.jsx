@@ -7,7 +7,10 @@ import store from "./redux/store.jsx";
 // import "node_modules/antd/dist/reset.css";
 // import "./node_modules/slick-carousel/slick/slick.css";
 // import "node_modules/slick-carousel/slick/slick-theme.css";
+import axios from "axios";
 import App from "./App";   // Import App only once
+
+axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL || "";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
