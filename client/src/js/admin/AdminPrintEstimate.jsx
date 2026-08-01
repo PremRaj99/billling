@@ -1,282 +1,330 @@
-import React, { useEffect, useRef, useState } from "react";
-import AdminLayout from "./components/AdminLayout";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
-import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
-import CancelIcon from "@mui/icons-material/Cancel";
-import { message } from "antd";
-import { useNavigate, useParams } from "react-router-dom";
-import html2canvas from "html2canvas";
+import { useParams, useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
-import "./AdminAddInvoice.css";
+import autoTable from "jspdf-autotable";
+import { message } from "antd";
 import { formatNumber } from "../components/numberUtils";
+
+const getImageDataUrl = async (url) => {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return url;
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = () => resolve(url);
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    console.error("Fetch image error:", e);
+    return url;
+  }
+};
 
 const AdminPrintEstimate = () => {
   const params = useParams();
-  const pdfRef = useRef();
+  const navigate = useNavigate();
   const [quantities, setQuantities] = useState({});
   const [invoiceId, setInvoiceId] = useState(null);
   const [invoice, setInvoice] = useState(null);
   const [billingTo, setBillingTo] = useState("");
-  const [advancePayment, setAdvancePayment] = useState("");
-  const [discount, setDiscount] = useState("");
-  const [balancePayment, setBalancePayment] = useState("");
+  const [advancePayment, setAdvancePayment] = useState(0);
+  const [discount, setDiscount] = useState(0);
+  const [balancePayment, setBalancePayment] = useState(0);
   const [totalTaxableValue, setTotalTaxableValue] = useState(0);
   const [hasSignature, setHasSignature] = useState(false);
   const [data, setData] = useState([]);
+  const [pdfUrl, setPdfUrl] = useState(null);
 
-  async function getInvoiceById() {
+  const topImageUrl = "/estt.jpg";
+  const bottomImageUrl = "/add.jpg";
+  const signImageUrl = "/artpoint-sign.png";
+
+  const getInvoiceById = async () => {
     try {
       const res = await axios.post("/api/estimate/get-estimate-by-id", {
         estimateId: params?.estimateId,
       });
       if (res.data.success) {
-        setData(res.data.data.products);
-        setBillingTo(res.data.data.billingTo);
-        setInvoice(res.data.data.invoice);
-        setInvoiceId(res.data.data.estimateId);
-        setAdvancePayment(res.data.data.advancePayment);
-        setDiscount(res.data.data.discount);
-        setBalancePayment(res.data.data.balancePayment);
-        setHasSignature(Boolean(res.data.data.hasSignature));
+        const estData = res.data.data;
+        setData(estData.products || []);
+        setBillingTo(estData.billingTo || {});
+        setInvoice(estData.invoice || {});
+        setInvoiceId(estData.estimateId);
+        setAdvancePayment(estData.advancePayment || 0);
+        setDiscount(estData.discount || 0);
+        setBalancePayment(estData.balancePayment || 0);
+        setHasSignature(Boolean(estData.hasSignature));
+
         const qty = {};
-        res.data.data.products.forEach((product, index) => {
-          const { quantity } = product;
-          qty[index] = quantity;
+        (estData.products || []).forEach((product, index) => {
+          qty[index] = product.quantity || 0;
         });
         setQuantities(qty);
       } else {
         message.error(res.data.message);
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
+      message.error("Failed to fetch estimate data.");
     }
-  }
+  };
 
   useEffect(() => {
     getInvoiceById();
-  }, []);
+  }, [params?.estimateId]);
 
-  // Calculate Total Taxable Value, CGST, SGST, and Grand Total
   useEffect(() => {
-    let taxableValue = 0;
-    let cgst = 0;
-    let sgst = 0;
-    data.forEach((item, index) => {
-      const sqft = item.length * item.breadth * (quantities[index] || 0);
-      const subtotal = sqft * item.price;
-      const itemCGST = (subtotal * item.cgst) / 100;
-      const itemSGST = (subtotal * item.sgst) / 100;
-      taxableValue += subtotal;
-      cgst += itemCGST;
-      sgst += itemSGST;
-    });
-    setTotalTaxableValue(taxableValue);
-  }, [data, quantities]);
-
-  //! PDF
-  function downloadPdf() {
-    const input = pdfRef.current;
-    if (input) {
-      html2canvas(input, { scale: 2 }).then((canvas) => {
-        const imgData = canvas.toDataURL("image/png");
-        const pdf = new jsPDF("p", "mm", "a4", true);
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-        const imgWidth = canvas.width;
-        const imgHeight = canvas.height;
-        const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-        const imgX = (pdfWidth - imgWidth * ratio) / 2;
-        const imgY = 0;
-        pdf.addImage(
-          imgData,
-          "PNG",
-          imgX,
-          imgY,
-          imgWidth * ratio,
-          imgHeight * ratio
-        );
-        pdf.save(`${params?.estimateId}`);
-        window.close();
-      });
-    } else {
-      console.error("PDF reference is not available.");
+    if (data && data.length >= 0 && invoiceId) {
+      generatePdf();
     }
-  }
+  }, [data, invoiceId, hasSignature]);
 
-  setTimeout(() => {
-    downloadPdf();
-  }, 1000);
+  const generatePdf = async () => {
+    try {
+      const doc = new jsPDF("p", "mm", "a4");
+      const pageHeight = doc.internal.pageSize.height;
 
-  const dateObject = new Date(invoice?.createdAt);
-  const day = dateObject.getDate();
-  const month = dateObject.toLocaleString("default", { month: "long" });
-  const year = dateObject.getFullYear();
-  const formattedDate = `${day} ${month} ${year}`;
+      let currentY = 8;
+
+      // Load images
+      const topImgData = await getImageDataUrl(topImageUrl);
+      const bottomImgData = await getImageDataUrl(bottomImageUrl);
+      const signImgData = hasSignature ? await getImageDataUrl(signImageUrl) : null;
+
+      // Header Image
+      try {
+        doc.addImage(topImgData, "JPEG", 8, currentY, 195, 60);
+      } catch (e) {
+        console.error("Failed to add top header image:", e);
+      }
+      currentY += 68;
+
+      // Billing Details
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text("Billing To:", 14, currentY);
+      doc.setFont("helvetica", "normal");
+      currentY += 6;
+
+      doc.text(`Name:          ${billingTo?.name || ""}`, 14, currentY);
+      doc.text(`Estimate No:  ${invoiceId || ""}`, 140, currentY);
+      currentY += 6;
+
+      doc.text(`Address:      ${billingTo?.address || ""}`, 14, currentY);
+      const formattedDate = invoice?.createdAt
+        ? new Intl.DateTimeFormat("en-IN", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          }).format(new Date(invoice.createdAt))
+        : "";
+      doc.text(`Date:              ${formattedDate}`, 140, currentY);
+      currentY += 6;
+
+      if (billingTo?.matterName) {
+        doc.text(`Matter Name: ${billingTo.matterName}`, 14, currentY);
+      }
+      doc.text(`Mobile:           ${billingTo?.mobile || ""}`, 140, currentY);
+      currentY += 6;
+
+      // Calculate total taxable value
+      let calculatedTotal = 0;
+      data.forEach((item, index) => {
+        const sqft = item.length * item.breadth * (quantities[index] || 0);
+        calculatedTotal += sqft * item.price;
+      });
+      setTotalTaxableValue(calculatedTotal);
+
+      // Table Columns
+      const tableColumns = [
+        { title: "Sr No", dataKey: "srNo" },
+        { title: "Product Details", dataKey: "productDetails" },
+        { title: "Size", dataKey: "size" },
+        { title: "Qty", dataKey: "qty" },
+        { title: "Total Sqft", dataKey: "totalSqft" },
+        { title: "Rate", dataKey: "rate" },
+        { title: "Total Value", dataKey: "totalValue" },
+      ];
+
+      const tableRows = data.map((item, index) => {
+        const sqft = item.length * item.breadth * (quantities[index] || 0);
+        const itemTotal = sqft * item.price;
+
+        return {
+          srNo: index + 1,
+          productDetails: item.name || "",
+          size: `${item.length} x ${item.breadth}`,
+          qty: quantities[index] || 0,
+          totalSqft: formatNumber(sqft),
+          rate: formatNumber(item.price),
+          totalValue: formatNumber(itemTotal),
+        };
+      });
+
+      autoTable(doc, {
+        columns: tableColumns,
+        body: tableRows,
+        startY: currentY + 2,
+        theme: "grid",
+        margin: { top: 10, left: 10, right: 10 },
+        styles: {
+          fontSize: 8.5,
+          cellPadding: 2.5,
+          textColor: "#000000",
+          fillColor: "#FFFFFF",
+        },
+        headStyles: {
+          fillColor: "#19a9e6",
+          textColor: "#FFFFFF",
+          fontStyle: "bold",
+          fontSize: 9,
+        },
+        didDrawPage: (d) => {
+          currentY = d.cursor.y;
+        },
+      });
+
+      currentY += 8;
+      if (currentY + 65 > pageHeight) {
+        doc.addPage();
+        currentY = 15;
+      }
+
+      // Terms Header
+      doc.setFillColor("#FF0000");
+      doc.rect(14, currentY - 4, 110, 8, "F");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(255, 255, 255);
+      doc.text("Terms & Conditions:", 18, currentY + 1.5);
+
+      doc.setTextColor(0, 0, 0);
+      currentY += 8;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text("Goods Once Sold will not be taken back or exchanged.", 16, currentY);
+      currentY += 5;
+      doc.text("All disputes subject to HAZARIBAG Jurisdiction only.", 16, currentY);
+
+      // Totals Table
+      const totalsColumns = [
+        { title: "Total Summary", dataKey: "description" },
+        { title: "Amount (INR)", dataKey: "amount" },
+      ];
+
+      const totalsRows = [
+        { description: "Total Value", amount: formatNumber(calculatedTotal) },
+        { description: "Advance Payment", amount: formatNumber(advancePayment) },
+        { description: "Discount", amount: formatNumber(discount) },
+        { description: "Balance Payment", amount: formatNumber(balancePayment) },
+      ];
+
+      autoTable(doc, {
+        columns: totalsColumns,
+        body: totalsRows,
+        startY: currentY - 17,
+        theme: "grid",
+        margin: { left: 135, right: 10 },
+        styles: {
+          fontSize: 9,
+          cellPadding: 2,
+          textColor: "#000000",
+          fillColor: "#FFFFFF",
+        },
+        headStyles: {
+          fillColor: "#19a9e6",
+          textColor: "#FFFFFF",
+          fontStyle: "bold",
+        },
+        tableWidth: "wrap",
+      });
+
+      currentY += 8;
+
+      // Account Details Header
+      doc.setFillColor("#FF0000");
+      doc.rect(14, currentY - 4, 110, 8, "F");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(255, 255, 255);
+      doc.text("Account Details:", 18, currentY + 1.5);
+
+      doc.setTextColor(0, 0, 0);
+      currentY += 8;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text("Bank of India", 16, currentY);
+      currentY += 5;
+      doc.text("A/C No: 469920110000164", 16, currentY);
+      currentY += 5;
+      doc.text("IFSC Code: BKID0004699", 16, currentY);
+
+      // Signature & Footer Image
+      if (hasSignature && signImgData) {
+        try {
+          doc.addImage(signImgData, "PNG", 150, pageHeight - 35, 45, 18);
+        } catch (e) {
+          console.error("Failed to add signature image:", e);
+        }
+      }
+
+      try {
+        doc.addImage(bottomImgData, "JPEG", 8, pageHeight - 16, 195, 10);
+      } catch (e) {
+        console.error("Failed to add bottom image:", e);
+      }
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text("Azim Art Point", 155, pageHeight - 20);
+      doc.text("Authorized Signature", 150, pageHeight - 16);
+
+      const pdfBlob = doc.output("blob");
+      const blobUrl = URL.createObjectURL(pdfBlob);
+      setPdfUrl(blobUrl);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      message.error("PDF generation error: " + err.message);
+    }
+  };
 
   return (
-    <AdminLayout>
-      <div className="preview-container" ref={pdfRef}>
-        <div className="invoice-container preview">
-          <div className="invoice-img estimate-img"></div>
-          {/* Billing Details */}
-          <div className="bill-to-details">
-            <div className="center mb-3">
-              <h4 className="m-0 me-2">Billing To</h4>
-            </div>
-            <div className="form-fields mb-3 center">
-              <label htmlFor="">Name</label>
-              <h5 className="w-100 text-start m-0">{billingTo?.name}</h5>
-            </div>
-            <div className="form-fields mb-3 center">
-              <label htmlFor="">Address</label>
-              <h5 className="w-100 text-start m-0">{billingTo?.address}</h5>
-            </div>
-            <div className="form-fields mb-3 center">
-              <label htmlFor="">Matter Name</label>
-                <h5 className="w-100 text-start m-0">{billingTo?.matterName}</h5>
-            </div>
-          </div>
-          {/* Invoice Details  */}
-          <div className="invoice-details">
-            <div className="form-fields mb-3 center">
-              <label htmlFor="">Invoice No</label>
-              <h5 className="w-100 text-start m-0">{invoiceId}</h5>
-            </div>
-            <div className="form-fields mb-3 center">
-              <label htmlFor="">Date</label>
-              <h5 className="w-100 text-start m-0">{formattedDate}</h5>
-            </div>
-            <div className="form-fields mb-3 center">
-              <label htmlFor="">Mobile</label>
-              <h5 className="w-100 text-start m-0">{billingTo?.mobile}</h5>
-            </div>
-          </div>
-          <div className="product-details est">
-            <table className="table tb table-bordered">
-              <thead>
-                <tr>
-                  <th>
-                    <small>Sr No</small>
-                  </th>
-                  <th>
-                    <small>Product Details</small>
-                  </th>
-                  <th>
-                    <small>Size</small>
-                  </th>
-                  <th>
-                    <small>Qty</small>
-                  </th>
-                  <th>
-                    <small>Total Sqft</small>
-                  </th>
-                  <th>
-                    <small>Rate</small>
-                  </th>
-                  <th>
-                    <small>Total Value</small>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {data &&
-                  data?.map((item, index) => {
-                    const sqft = formatNumber(
-                      item?.length * item?.breadth * quantities[index]
-                    );
-                    return (
-                      <tr>
-                        <td>{index + 1}</td>
-                        <td>{item?.name}</td>
-                        <td>
-                          {item?.length} x {item?.breadth}
-                        </td>
-                        <td>
-                          <span>{quantities[index] || 0}</span>
-                        </td>
-                        <td>{sqft}</td>
-                        <td>{item?.price}</td>
-                        <td>{formatNumber(sqft * item?.price)}</td>
-                      </tr>
-                    );
-                  })}
-              </tbody>
-            </table>
-
-            {/* Total  */}
-            {data?.length > 0 && (
-              <div className="row mt-5">
-                <div className="col-8">
-                  <div className="bg-danger text-white p-2">
-                    <span>Terms & Conditions</span>
-                  </div>
-                  <p className="m-0 mt-3">
-                    Goods Once Sold will not be taken back or exchanged.
-                  </p>
-                  <p>All disputes subject to HAZARIBAG Jusrisdiction only.</p>
-                </div>
-                <div className="col-4">
-                  <table className="table tb table-bordered">
-                    <thead>
-                      <tr>
-                        <td className="tbtotal" colSpan={100}>
-                          <b>Total</b>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>Total Value</td>
-                        <td>{formatNumber(totalTaxableValue)}</td>
-                      </tr>
-                      <tr>
-                        <td>Advance Payment</td>
-                        <td>{formatNumber(advancePayment)}</td>
-                      </tr>
-                      <tr>
-                        <td>Discount</td>
-                        <td>{formatNumber(discount)}</td>
-                      </tr>
-                      <tr>
-                        <td>Balance Payment</td>
-                        <td>{formatNumber(balancePayment)}</td>
-                      </tr>
-                    </thead>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="address-container w-100">
-            <div
-              className="address justify-content-end"
-              style={{ position: "relative", alignItems: "flex-end" }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                }}
-              >
-                {hasSignature && (
-                  <img
-                    src="/artpoint-sign.png"
-                    alt="Signature"
-                    style={{
-                      height: "70px",
-                      marginBottom: "-12px",
-                      objectFit: "contain",
-                    }}
-                  />
-                )}
-                <b>Authorized Signature</b>
-              </div>
-            </div>
-            <div className="add-img"></div>
-          </div>
-        </div>
+    <div style={{ width: "100%", height: "100vh", position: "relative" }}>
+      <div
+        style={{
+          position: "fixed",
+          top: "10px",
+          right: "20px",
+          zIndex: 9999,
+          display: "flex",
+          gap: "10px",
+        }}
+      >
+        <button
+          onClick={() => navigate("/admin-estimate")}
+          className="btn btn-secondary shadow-sm"
+        >
+          Back to List
+        </button>
       </div>
-    </AdminLayout>
+
+      {pdfUrl ? (
+        <iframe
+          src={pdfUrl}
+          title="Estimate PDF"
+          style={{ width: "100%", height: "100vh", border: "none" }}
+        />
+      ) : (
+        <div className="d-flex justify-content-center align-items-center vh-100">
+          <h4>Generating Estimate PDF...</h4>
+        </div>
+      )}
+    </div>
   );
 };
 

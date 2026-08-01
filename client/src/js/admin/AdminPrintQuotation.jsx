@@ -1,229 +1,241 @@
-import React, { useEffect, useRef, useState } from "react";
-import AdminLayout from "./components/AdminLayout";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { message } from "antd";
-import { useParams } from "react-router-dom";
-import html2canvas from "html2canvas";
+import { useParams, useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
-// import { useReactToPrint } from "react-to-print";
-import "./AdminAddInvoice.css";
-import "./AdminPrint.css";
+import autoTable from "jspdf-autotable";
+import { message } from "antd";
 import { formatNumber } from "../components/numberUtils";
 
-const renderParticulars = (nameStr) => {
-  if (!nameStr) return null;
-  const lines = String(nameStr)
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
-  if (lines.length === 0) return null;
-  const [mainTitle, ...subItems] = lines;
-  return (
-    <div>
-      <div style={{ fontWeight: 500 }}>{mainTitle}</div>
-      {subItems.length > 0 && (
-        <ul
-          style={{
-            margin: "4px 0 0 0",
-            paddingLeft: "15px",
-            fontSize: "0.9em",
-            textAlign: "left",
-            listStyleType: "disc",
-            listStylePosition: "inside",
-          }}
-        >
-          {subItems.map((sub, idx) => (
-            <li
-              style={{
-                listStyleType: "disc",
-                display: "list-item",
-              }}
-              key={idx}
-            >
-              {sub}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
+const getImageDataUrl = async (url) => {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return url;
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = () => resolve(url);
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    console.error("Fetch image error:", e);
+    return url;
+  }
 };
 
-const AdminEditQuotation = () => {
+const AdminPrintQuotation = () => {
   const params = useParams();
-  // const componentRef = useRef();
-  const pdfRef = useRef();
-  const [quantities, setQuantities] = useState({});
+  const navigate = useNavigate();
   const [invoiceId, setInvoiceId] = useState(null);
   const [invoice, setInvoice] = useState(null);
   const [billingTo, setBillingTo] = useState("");
-  const [totalTaxableValue, setTotalTaxableValue] = useState(0);
   const [data, setData] = useState([]);
+  const [pdfUrl, setPdfUrl] = useState(null);
 
+  const topImageUrl = "/quoo.jpg";
+  const bottomImageUrl = "/add.jpg";
 
-
-  async function getInvoiceById() {
+  const getInvoiceById = async () => {
     try {
       const res = await axios.post("/api/quotation/get-quotation-by-id", {
         quotationId: params?.quotationId,
       });
       if (res.data.success) {
-        setData(res.data.data.products);
-        setBillingTo(res.data.data.billingTo);
-        setInvoice(res.data.data.invoice);
-        setInvoiceId(res.data.data.quotationId);
-        const qty = {};
-        res.data.data.products.forEach((product, index) => {
-          const { quantity } = product;
-          qty[index] = quantity;
-        });
-        setQuantities(qty);
+        const qData = res.data.data;
+        setData(qData.products || []);
+        setBillingTo(qData.billingTo || {});
+        setInvoice(qData.invoice || {});
+        setInvoiceId(qData.quotationId);
       } else {
         message.error(res.data.message);
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
+      message.error("Failed to fetch quotation data.");
     }
-  }
+  };
 
   useEffect(() => {
     getInvoiceById();
-  }, []);
+  }, [params?.quotationId]);
 
-  // Calculate Total Taxable Value, CGST, SGST, and Grand Total
   useEffect(() => {
-    let taxableValue = 0;
-    let cgst = 0;
-    let sgst = 0;
-    data.forEach((item, index) => {
-      const sqft = item.length * item.breadth * (quantities[index] || 0);
-      const subtotal = sqft * item.price;
-      const itemCGST = (subtotal * item.cgst) / 100;
-      const itemSGST = (subtotal * item.sgst) / 100;
-
-      taxableValue += subtotal;
-      cgst += itemCGST;
-      sgst += itemSGST;
-    });
-    setTotalTaxableValue(taxableValue);
-  }, [data, quantities]);
-
-  //! PDF
-  function downloadPdf() {
-    const input = pdfRef.current;
-    if (input) {
-      html2canvas(input, { scale: 2 }).then((canvas) => {
-        const imgData = canvas.toDataURL("image/png");
-        const pdf = new jsPDF("p", "mm", "a4", true);
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-        const imgWidth = canvas.width;
-        const imgHeight = canvas.height;
-        const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-        const imgX = (pdfWidth - imgWidth * ratio) / 2;
-        const imgY = 0;
-        pdf.addImage(
-          imgData,
-          "PNG",
-          imgX,
-          imgY,
-          imgWidth * ratio,
-          imgHeight * ratio
-        );
-        pdf.save(`${params?.quotationId}`);
-        window.close();
-      });
-    } else {
-      console.error("PDF reference is not available.");
+    if (data && data.length >= 0 && invoiceId) {
+      generatePdf();
     }
-  }
+  }, [data, invoiceId]);
 
-  setTimeout(() => {
-    downloadPdf();
-  }, 1000);
+  const formatParticularsForPdf = (nameStr) => {
+    if (!nameStr) return "";
+    const lines = String(nameStr)
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (lines.length === 0) return "";
+    const [mainTitle, ...subItems] = lines;
+    if (subItems.length === 0) return mainTitle;
+    const bulletedSubs = subItems.map((sub) => `  • ${sub}`).join("\n");
+    return `${mainTitle}\n${bulletedSubs}`;
+  };
 
-  const dateObject = new Date(invoice?.createdAt);
-  const day = dateObject.getDate();
-  const month = dateObject.toLocaleString("default", { month: "long" });
-  const year = dateObject.getFullYear();
-  const formattedDate = `${day} ${month} ${year}`;
+  const generatePdf = async () => {
+    try {
+      const doc = new jsPDF("p", "mm", "a4");
+      const pageHeight = doc.internal.pageSize.height;
 
-  
+      let currentY = 8;
+
+      // Load images
+      const topImgData = await getImageDataUrl(topImageUrl);
+      const bottomImgData = await getImageDataUrl(bottomImageUrl);
+
+      // Header Image
+      try {
+        doc.addImage(topImgData, "JPEG", 8, currentY, 195, 60);
+      } catch (e) {
+        console.error("Failed to add header image:", e);
+      }
+      currentY += 68;
+
+      // Ref and Date
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text(`REF: ${invoiceId || ""}`, 14, currentY);
+
+      const formattedDate = invoice?.createdAt
+        ? new Intl.DateTimeFormat("en-IN", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          }).format(new Date(invoice.createdAt))
+        : "";
+      doc.text(`Date: ${formattedDate}`, 140, currentY);
+      currentY += 8;
+
+      // Billing Details
+      doc.setFont("helvetica", "bold");
+      doc.text("To,", 14, currentY);
+      doc.setFont("helvetica", "normal");
+      currentY += 6;
+
+      if (billingTo?.name) {
+        doc.text(billingTo.name, 14, currentY);
+        currentY += 6;
+      }
+      if (billingTo?.address) {
+        doc.text(billingTo.address, 14, currentY);
+        currentY += 6;
+      }
+
+      // Table Columns
+      const tableColumns = [
+        { title: "Sr No", dataKey: "srNo" },
+        { title: "Product Details", dataKey: "productDetails" },
+        { title: "Rate", dataKey: "rate" },
+      ];
+
+      const tableRows = data.map((item, index) => ({
+        srNo: index + 1,
+        productDetails: formatParticularsForPdf(item?.name),
+        rate: formatNumber(item?.price),
+      }));
+
+      autoTable(doc, {
+        columns: tableColumns,
+        body: tableRows,
+        startY: currentY + 2,
+        theme: "grid",
+        margin: { top: 10, left: 10, right: 10 },
+        styles: {
+          fontSize: 9,
+          cellPadding: 3,
+          textColor: "#000000",
+          fillColor: "#FFFFFF",
+          overflow: "linebreak",
+        },
+        headStyles: {
+          fillColor: "#19a9e6",
+          textColor: "#FFFFFF",
+          fontStyle: "bold",
+          fontSize: 9,
+        },
+        columnStyles: {
+          0: { cellWidth: 20 },
+          1: { cellWidth: 140 },
+          2: { cellWidth: 30, halign: "right" },
+        },
+        didDrawPage: (d) => {
+          currentY = d.cursor.y;
+        },
+      });
+
+      currentY += 12;
+      if (currentY + 30 > pageHeight) {
+        doc.addPage();
+        currentY = 15;
+      }
+
+      doc.setFont("helvetica", "bolditalic");
+      doc.setFontSize(10);
+      doc.setTextColor(220, 53, 69);
+      doc.text("GST Charge Extra", 14, currentY);
+
+      doc.setTextColor(0, 0, 0);
+
+      // Bottom Image and Signature
+      try {
+        doc.addImage(bottomImgData, "JPEG", 8, pageHeight - 16, 195, 10);
+      } catch (e) {
+        console.error("Failed to add bottom image:", e);
+      }
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text("Azim Art Point", 155, pageHeight - 20);
+      doc.text("Authorized Signature", 150, pageHeight - 16);
+
+      const pdfBlob = doc.output("blob");
+      const blobUrl = URL.createObjectURL(pdfBlob);
+      setPdfUrl(blobUrl);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      message.error("PDF generation error: " + err.message);
+    }
+  };
+
   return (
-    <AdminLayout>
+    <div style={{ width: "100%", height: "100vh", position: "relative" }}>
       <div
-        className="preview-container"
-        ref={pdfRef}
-        // ref={componentRef}
+        style={{
+          position: "fixed",
+          top: "10px",
+          right: "20px",
+          zIndex: 9999,
+          display: "flex",
+          gap: "10px",
+        }}
       >
-        <div className="invoice-container preview">
-          <div className="invoice-img quotaion-img"></div>
-          <div className="ref-and-date">
-            <div className="ref">
-              <h5 className="m-0">REF:{invoiceId}</h5>
-            </div>
-            <div className="qdate">
-              <div className="center gap-2 form-fields">
-                <h5 className="m-0">Date:</h5>
-                <h5 className="m-0">{formattedDate}</h5>
-              </div>
-            </div>
-          </div>
-          {/* Billing Details */}
-          <div className="bill-to-details">
-            <div className="center mb-3">
-              <h5 className="m-0 me-2">To,</h5>
-            </div>
-            <div className="form-fields mb-3 center">
-              <h5 className="w-100 m-0 text-start">{billingTo?.name}</h5>
-            </div>
-            <div className="form-fields mb-3 center">
-              <h5 className="m-0 w-100 text-start">{billingTo?.address}</h5>
-            </div>
-          </div>
-          {/* Invoice Details  */}
-          <div className="product-details quot">
-            <table className="table tb table-bordered">
-              <thead>
-                <tr>
-                  <th>
-                    <small>Sr No</small>
-                  </th>
-                  <th>
-                    <small>Product Details</small>
-                  </th>
-                  <th>
-                    <small>Rate</small>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {data &&
-                  data?.map((item, index) => {
-                    return (
-                      <tr key={index}>
-                        <td>{index + 1}</td>
-                        <td>{renderParticulars(item?.name)}</td>
-                        <td>{item?.price}</td>
-                      </tr>
-                    );
-                  })}
-              </tbody>
-            </table>
-          </div>
-          <div className="address-container w-100">
-            <div className="address">
-              <h5 className="text-danger">
-                <i>GST Charge Extra</i>
-              </h5>
-              <b>Authorized Signature</b>
-            </div>
-            <div className="add-img"></div>
-          </div>
-        </div>
+        <button
+          onClick={() => navigate("/admin-quotation")}
+          className="btn btn-secondary shadow-sm"
+        >
+          Back to List
+        </button>
       </div>
-    </AdminLayout>
+
+      {pdfUrl ? (
+        <iframe
+          src={pdfUrl}
+          title="Quotation PDF"
+          style={{ width: "100%", height: "100vh", border: "none" }}
+        />
+      ) : (
+        <div className="d-flex justify-content-center align-items-center vh-100">
+          <h4>Generating Quotation PDF...</h4>
+        </div>
+      )}
+    </div>
   );
 };
 
-export default AdminEditQuotation;
+export default AdminPrintQuotation;

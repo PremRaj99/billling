@@ -307,6 +307,10 @@ const AdminEditEstimate = () => {
     }
   }
 
+  function downloadPdf() {
+    window.open("/admin-print-estimate/" + invoiceId, "_blank");
+  }
+
   // Calculate Total Taxable Value, CGST, SGST, and Grand Total
   useEffect(() => {
     let taxableValue = 0;

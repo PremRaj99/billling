@@ -1,16 +1,31 @@
-import React, { useEffect, useRef, useState } from "react";
-import AdminLayout from "./components/AdminLayout";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { message } from "antd";
-import { useParams } from "react-router-dom";
-import html2canvas from "html2canvas";
+import { useParams, useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
-import "./AdminAddInvoice.css";
+import autoTable from "jspdf-autotable";
+import { message } from "antd";
 import { formatNumber } from "../components/numberUtils";
 
+const getImageDataUrl = async (url) => {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return url;
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = () => resolve(url);
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    console.error("Fetch image error:", e);
+    return url;
+  }
+};
+
 const AdminPrintInvoice = () => {
-  const pdfRef = useRef();
   const params = useParams();
+  const navigate = useNavigate();
   const [quantities, setQuantities] = useState({});
   const [invoiceId, setInvoiceId] = useState(null);
   const [invoice, setInvoice] = useState({
@@ -25,364 +40,327 @@ const AdminPrintInvoice = () => {
   const [status, setStatus] = useState("unpaid");
   const [isCancelled, setIsCancelled] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState(null);
 
-  async function getInvoiceById() {
+  const topImageUrl = "/inn.jpg";
+  const bottomImageUrl = "/add.jpg";
+  const signImageUrl = "/artpoint-sign.png";
+
+  const getInvoiceById = async () => {
     try {
       const res = await axios.post("/api/invoice/get-invoice-by-id", {
         invoiceId: params?.invoiceId,
       });
       if (res.data.success) {
-        setData(res.data.data.products);
-        setBillingTo(res.data.data.billingTo);
-        setInvoice(res.data.data.invoice);
-        setInvoiceId(res.data.data.invoiceId);
-        setStatus(res.data.data.status || "unpaid");
+        const invoiceData = res.data.data;
+        setData(invoiceData.products || []);
+        setBillingTo(invoiceData.billingTo || {});
+        setInvoice(invoiceData.invoice || {});
+        setInvoiceId(invoiceData.invoiceId);
+        setTotalCGST(invoiceData.totalCgst || 0);
+        setTotalSGST(invoiceData.totalSgst || 0);
+        setGrandTotal(invoiceData.grandTotal || 0);
+        setTotalTaxableValue(invoiceData.totalTaxableValue || 0);
+        setStatus(invoiceData.status || "unpaid");
         setIsCancelled(
-          res.data.data.isCancelled !== undefined
-            ? res.data.data.isCancelled
-            : res.data.data.status === "cancelled"
+          invoiceData.isCancelled !== undefined
+            ? invoiceData.isCancelled
+            : invoiceData.status === "cancelled"
         );
-        setHasSignature(Boolean(res.data.data.hasSignature));
+        setHasSignature(Boolean(invoiceData.hasSignature));
+
         const qty = {};
-        res.data.data.products.forEach((product, index) => {
-          const { quantity } = product;
-          qty[index] = quantity;
+        (invoiceData.products || []).forEach((product, index) => {
+          qty[index] = product.quantity || 0;
         });
         setQuantities(qty);
       } else {
         message.error(res.data.message);
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
+      message.error("Failed to fetch invoice data.");
     }
-  }
+  };
 
   useEffect(() => {
     getInvoiceById();
-  }, []);
+  }, [params?.invoiceId]);
 
-  // Calculate Total Taxable Value, CGST, SGST, and Grand Total
   useEffect(() => {
-    let taxableValue = 0;
-    let cgst = 0;
-    let sgst = 0;
-    data.forEach((item, index) => {
-      const sqft = item.length * item.breadth * (quantities[index] || 0);
-      const subtotal = sqft * item.price;
-      const itemCGST = (subtotal * item.cgst) / 100;
-      const itemSGST = (subtotal * item.sgst) / 100;
-
-      taxableValue += subtotal;
-      cgst += itemCGST;
-      sgst += itemSGST;
-    });
-
-    setTotalTaxableValue(taxableValue);
-    setTotalCGST(cgst);
-    setTotalSGST(sgst);
-    setGrandTotal(taxableValue + cgst + sgst);
-  }, [data, quantities]);
-
-  function downloadPdf() {
-    const input = pdfRef.current;
-    if (input) {
-      html2canvas(input, { scale: 2 }).then((canvas) => {
-        const imgData = canvas.toDataURL("image/png");
-        const pdf = new jsPDF("p", "mm", "a4", true);
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-        const imgWidth = canvas.width;
-        const imgHeight = canvas.height;
-        const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-        const imgX = (pdfWidth - imgWidth * ratio) / 2;
-        const imgY = 0;
-        pdf.addImage(
-          imgData,
-          "PNG",
-          imgX,
-          imgY,
-          imgWidth * ratio,
-          imgHeight * ratio
-        );
-        pdf.save(`${params?.invoiceId}`);
-        window.close();
-      });
-    } else {
-      console.error("PDF reference is not available.");
+    if (data && data.length >= 0 && invoiceId) {
+      generatePdf();
     }
-  }
+  }, [data, invoiceId, hasSignature, isCancelled]);
 
-  setTimeout(() => {
-    downloadPdf();
-  }, 1000);
+  const generatePdf = async () => {
+    try {
+      const doc = new jsPDF("p", "mm", "a4");
+      const pageHeight = doc.internal.pageSize.height;
+      const pageWidth = doc.internal.pageSize.width;
 
-  const dateObject = new Date(invoice?.createdAt);
-  const day = dateObject.getDate();
-  const month = dateObject.toLocaleString("default", { month: "long" });
-  const year = dateObject.getFullYear();
-  const formattedDate = `${day} ${month} ${year}`;
+      let currentY = 8;
 
-  const formatCustomDate = (dateStr) => {
-    if (!dateStr) return "";
-    const dateObj = new Date(dateStr);
-    if (isNaN(dateObj.getTime())) return dateStr;
-    const d = dateObj.getDate();
-    const m = dateObj.toLocaleString("default", { month: "long" });
-    const y = dateObj.getFullYear();
-    return `${d} ${m} ${y}`;
+      // Load banner images safely
+      const topImgData = await getImageDataUrl(topImageUrl);
+      const bottomImgData = await getImageDataUrl(bottomImageUrl);
+      const signImgData = hasSignature ? await getImageDataUrl(signImageUrl) : null;
+
+      // Header Image
+      try {
+        doc.addImage(topImgData, "JPEG", 8, currentY, 195, 60);
+      } catch (e) {
+        console.error("Failed to add top header image to PDF:", e);
+      }
+      currentY += 68;
+
+      // Cancelled stamp if applicable
+      if (isCancelled || status === "cancelled") {
+        doc.setFontSize(36);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(220, 53, 69);
+        doc.text("CANCELLED", pageWidth / 2, currentY + 15, {
+          align: "center",
+          angle: 15,
+        });
+        doc.setTextColor(0, 0, 0);
+      }
+
+      // Billing Details
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text("Billing To:", 14, currentY);
+      doc.setFont("helvetica", "normal");
+      currentY += 6;
+
+      doc.text(`Name:          ${billingTo?.name || ""}`, 14, currentY);
+      doc.text(`Invoice No:     ${invoiceId || ""}`, 140, currentY);
+      currentY += 6;
+
+      doc.text(`Address:      ${billingTo?.address || ""}`, 14, currentY);
+      const formattedDate = invoice?.createdAt
+        ? new Intl.DateTimeFormat("en-IN", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          }).format(new Date(invoice.createdAt))
+        : "";
+      doc.text(`Date:              ${formattedDate}`, 140, currentY);
+      currentY += 6;
+
+      doc.text(`GST:           ${billingTo?.userGst || ""}`, 14, currentY);
+      doc.text(`Mobile:           ${billingTo?.mobile || ""}`, 140, currentY);
+      currentY += 6;
+
+      if (billingTo?.orderDate) {
+        const orderDateStr = new Intl.DateTimeFormat("en-IN", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        }).format(new Date(billingTo.orderDate));
+        doc.text(`Order Date:   ${orderDateStr}`, 140, currentY);
+        currentY += 6;
+      }
+
+      // Table Columns
+      const tableColumns = [
+        { title: "Sr No", dataKey: "srNo" },
+        { title: "Product Details", dataKey: "productDetails" },
+        { title: "HSN Code", dataKey: "hsnCode" },
+        { title: "Size", dataKey: "size" },
+        { title: "Qty", dataKey: "qty" },
+        { title: "Total Sqft", dataKey: "totalSqft" },
+        { title: "Rate", dataKey: "rate" },
+        { title: "Taxable Amount", dataKey: "totalTaxableValue" },
+        { title: "CGST Rate", dataKey: "cgst" },
+        { title: "CGST Amount", dataKey: "CGSTamount" },
+        { title: "SGST Rate", dataKey: "sgst" },
+        { title: "SGST Amount", dataKey: "SGSTamount" },
+      ];
+
+      const tableRows = data.map((item, index) => {
+        const sqft = item.length * item.breadth * (quantities[index] || 0);
+        const taxable = sqft * item?.price;
+        const cgstAmt = (taxable * (item?.cgst || 0)) / 100;
+        const sgstAmt = (taxable * (item?.sgst || 0)) / 100;
+
+        return {
+          srNo: index + 1,
+          productDetails: item.name || "",
+          hsnCode: item.hsnCode || "",
+          size: `${item.length} x ${item.breadth}`,
+          qty: quantities[index] || 0,
+          totalSqft: formatNumber(sqft),
+          rate: formatNumber(item.price),
+          totalTaxableValue: formatNumber(taxable),
+          cgst: `${item?.cgst || 0}%`,
+          CGSTamount: formatNumber(cgstAmt),
+          sgst: `${item?.sgst || 0}%`,
+          SGSTamount: formatNumber(sgstAmt),
+        };
+      });
+
+      autoTable(doc, {
+        columns: tableColumns,
+        body: tableRows,
+        startY: currentY + 2,
+        theme: "grid",
+        margin: { top: 10, left: 10, right: 10 },
+        styles: {
+          fontSize: 8,
+          cellPadding: 2,
+          textColor: "#000000",
+          fillColor: "#FFFFFF",
+        },
+        headStyles: {
+          fillColor: "#19a9e6",
+          textColor: "#FFFFFF",
+          fontStyle: "bold",
+          fontSize: 8,
+        },
+        didDrawPage: (d) => {
+          currentY = d.cursor.y;
+        },
+      });
+
+      currentY += 8;
+      if (currentY + 65 > pageHeight) {
+        doc.addPage();
+        currentY = 15;
+      }
+
+      // Terms Header
+      doc.setFillColor("#FF0000");
+      doc.rect(14, currentY - 4, 110, 8, "F");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(255, 255, 255);
+      doc.text("Terms & Conditions:", 18, currentY + 1.5);
+
+      doc.setTextColor(0, 0, 0);
+      currentY += 8;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text("Goods Once Sold will not be taken back or exchanged.", 16, currentY);
+      currentY += 5;
+      doc.text("All disputes subject to HAZARIBAG Jurisdiction only.", 16, currentY);
+
+      // Totals Table
+      const totalsColumns = [
+        { title: "Total Summary", dataKey: "description" },
+        { title: "Amount (INR)", dataKey: "amount" },
+      ];
+
+      const totalsRows = [
+        { description: "Taxable Amount", amount: formatNumber(totalTaxableValue) },
+        { description: "Total CGST", amount: formatNumber(totalCGST) },
+        { description: "Total SGST", amount: formatNumber(totalSGST) },
+        { description: "Grand Total", amount: formatNumber(grandTotal) },
+      ];
+
+      autoTable(doc, {
+        columns: totalsColumns,
+        body: totalsRows,
+        startY: currentY - 17,
+        theme: "grid",
+        margin: { left: 135, right: 10 },
+        styles: {
+          fontSize: 9,
+          cellPadding: 2,
+          textColor: "#000000",
+          fillColor: "#FFFFFF",
+        },
+        headStyles: {
+          fillColor: "#19a9e6",
+          textColor: "#FFFFFF",
+          fontStyle: "bold",
+        },
+        tableWidth: "wrap",
+      });
+
+      currentY += 8;
+
+      // Account Details Header
+      doc.setFillColor("#FF0000");
+      doc.rect(14, currentY - 4, 110, 8, "F");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(255, 255, 255);
+      doc.text("Account Details:", 18, currentY + 1.5);
+
+      doc.setTextColor(0, 0, 0);
+      currentY += 8;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text("Bank of India", 16, currentY);
+      currentY += 5;
+      doc.text("A/C No: 469920110000164", 16, currentY);
+      currentY += 5;
+      doc.text("IFSC Code: BKID0004699", 16, currentY);
+
+      // Signature & Footer Image
+      if (hasSignature && signImgData) {
+        try {
+          doc.addImage(signImgData, "PNG", 150, pageHeight - 35, 45, 18);
+        } catch (e) {
+          console.error("Failed to add signature image:", e);
+        }
+      }
+
+      try {
+        doc.addImage(bottomImgData, "JPEG", 8, pageHeight - 16, 195, 10);
+      } catch (e) {
+        console.error("Failed to add bottom image:", e);
+      }
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text("Azim Art Point", 155, pageHeight - 20);
+      doc.text("Authorized Signature", 150, pageHeight - 16);
+
+      const pdfBlob = doc.output("blob");
+      const blobUrl = URL.createObjectURL(pdfBlob);
+      setPdfUrl(blobUrl);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      message.error("PDF generation error: " + err.message);
+    }
   };
 
   return (
-    <AdminLayout>
-      <div ref={pdfRef} className="preview-container">
-        <div className="invoice-container preview" style={{ position: "relative" }}>
-          {(isCancelled || status === "cancelled") && (
-            <div
-              style={{
-                position: "absolute",
-                top: "40%",
-                left: "50%",
-                transform: "translate(-50%, -50%) rotate(-30deg)",
-                fontSize: "90px",
-                fontWeight: "900",
-                color: "rgba(220, 53, 69, 0.6)",
-                border: "8px dashed rgba(220, 53, 69, 0.4)",
-                padding: "15px 45px",
-                borderRadius: "16px",
-                textTransform: "uppercase",
-                letterSpacing: "12px",
-                pointerEvents: "none",
-                zIndex: 999,
-                userSelect: "none",
-                whiteSpace: "nowrap",
-              }}
-            >
-              CANCELLED
-            </div>
-          )}
-          <div className="invoice-img"></div>
-          {/* Billing Details */}
-          <div className="bill-to-details">
-            <div className="center mb-3">
-              <h4 className="m-0 me-2">Billing To</h4>
-            </div>
-            <div className="form-fields mb-3 center">
-              <label htmlFor="" className="me-3">
-                Name
-              </label>
-              <h5 className="m-0 text-start w-100">{billingTo?.name}</h5>
-            </div>
-            <div className="form-fields mb-3 center">
-              <label htmlFor="" className="me-3">
-                Address
-              </label>
-              <h5 className="m-0 text-start w-100">{billingTo?.address}</h5>
-            </div>
-            <div className="form-fields mb-3 center">
-              <label htmlFor="" className="me-3">
-                GST
-              </label>
-              <h5 className="m-0 text-start w-100">{billingTo?.userGst}</h5>
-            </div>
-          </div>
-
-          {/* Invoice Details  */}
-          <div className="invoice-details">
-            <div className="form-fields mb-3 center">
-              <label htmlFor="">Invoice No</label>
-              <h5 className="m-0 text-start w-100">{invoiceId}</h5>
-            </div>
-            <div className="form-fields mb-3 center">
-              <label htmlFor="" className="me-3">
-                Date
-              </label>
-              <h5 className="m-0 text-start w-100">{formattedDate}</h5>
-            </div>
-            <div className="form-fields mb-3 center">
-              <label htmlFor="" className="me-3">
-                Mobile
-              </label>
-              <h5 className="m-0 text-start w-100">{billingTo?.mobile}</h5>
-            </div>
-            {billingTo?.orderDate && (
-              <div className="form-fields mb-3 center">
-                <label htmlFor="" className="me-3">
-                  Order Date
-                </label>
-                <h5 className="m-0 text-start w-100">
-                  {formatCustomDate(billingTo?.orderDate)}
-                </h5>
-              </div>
-            )}
-          </div>
-          <div className="product-details">
-            <table className="table table-bordered tb">
-              <thead>
-                <tr>
-                  <th>
-                    <small>Sr No</small>
-                  </th>
-                  <th>
-                    <small>Product Details</small>
-                  </th>
-                  <th>
-                    <small>Hsn Code</small>
-                  </th>
-                  <th>
-                    <small>Size</small>
-                  </th>
-                  <th>
-                    <small>Qty</small>
-                  </th>
-                  <th>
-                    <small>Total Sqft</small>
-                  </th>
-                  <th>
-                    <small>Rate</small>
-                  </th>
-                  <th>
-                    <small>Taxable Value</small>
-                  </th>
-                  <th>
-                    <small>CGST Rate</small>
-                  </th>
-                  <th>
-                    <small>CGST Value</small>
-                  </th>
-                  <th>
-                    <small>SGST Rate</small>
-                  </th>
-                  <th>
-                    <small>SGST Value</small>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {data &&
-                  data?.map((item, index) => {
-                    const sqft = formatNumber(
-                      item?.length * item?.breadth * quantities[index]
-                    );
-                    return (
-                      <tr>
-                        <td>{index + 1}</td>
-                        <td>{item?.name}</td>
-                        <td>{item?.hsnCode}</td>
-                        <td>
-                          {item?.length} x {item?.breadth}
-                        </td>
-                        <td>
-                          <span>{quantities[index] || 0}</span>
-                        </td>
-                        <td>{sqft}</td>
-                        <td>{item?.price}</td>
-                        <td>{formatNumber(sqft * item?.price)}</td>
-                        <td>{item?.cgst}%</td>
-                        <td>
-                          {formatNumber(
-                            (sqft * item?.price * item?.cgst) / 100
-                          )}
-                        </td>
-                        <td>{item?.sgst}%</td>
-                        <td>
-                          {formatNumber(
-                            (sqft * item?.price * item?.sgst) / 100
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-              </tbody>
-            </table>
-            {/* Total  */}
-            {data?.length > 0 && (
-              <div className="row mt-5">
-                <div className="col-8">
-                  <div className="bg-danger text-white p-2">
-                    <span>Terms & Conditions</span>
-                  </div>
-                  <p className="m-0 mt-3">
-                    Goods Once Sold will not be taken back or exchanged.
-                  </p>
-                  <p>All disputes subject to HAZARIBAG Jusrisdiction only.</p>
-                  <div className="bg-danger text-white p-2">
-                    <span>Bank Details:</span>
-                  </div>
-                  <p className="mt-2 m-0">
-                    <b>Bank of India</b>
-                  </p>
-                  <p className="m-0">
-                    <b>A/C No: 469920110000164</b>
-                  </p>
-                  <p className="m-0">
-                    <b>IFSC Code: BKID0004699</b>
-                  </p>
-                </div>
-                <div className="col-4">
-                  <table className="table tb table-bordered">
-                    <thead>
-                      <tr>
-                        <td className="tbtotal" colSpan={100}>
-                          <b>Total</b>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>Taxable Value</td>
-                        <td>{formatNumber(totalTaxableValue)}</td>
-                      </tr>
-                      <tr>
-                        <td>Total CGST</td>
-                        <td>{formatNumber(totalCGST)}</td>
-                      </tr>
-                      <tr>
-                        <td>Total SGST</td>
-                        <td>{formatNumber(totalSGST)}</td>
-                      </tr>
-                      <tr>
-                        <td>Grand Total</td>
-                        <td>{formatNumber(grandTotal)}</td>
-                      </tr>
-                    </thead>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="address-container w-100">
-            <div
-              className="address justify-content-end"
-              style={{ position: "relative", alignItems: "flex-end" }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                }}
-              >
-                {hasSignature && (
-                  <img
-                    src="/artpoint-sign.png"
-                    alt="Signature"
-                    style={{
-                      height: "70px",
-                      marginBottom: "-12px",
-                      objectFit: "contain",
-                    }}
-                  />
-                )}
-                <p className="m-0 text-center">
-                  <b>Azim Art Point</b>
-                  <br />
-                  <b>Authorized Signature</b>
-                </p>
-              </div>
-            </div>
-            <div className="add-img"></div>
-          </div>
-        </div>
+    <div style={{ width: "100%", height: "100vh", position: "relative" }}>
+      <div
+        style={{
+          position: "fixed",
+          top: "10px",
+          right: "20px",
+          zIndex: 9999,
+          display: "flex",
+          gap: "10px",
+        }}
+      >
+        <button
+          onClick={() => navigate("/admin-invoice")}
+          className="btn btn-secondary shadow-sm"
+        >
+          Back to List
+        </button>
       </div>
-    </AdminLayout>
+
+      {pdfUrl ? (
+        <iframe
+          src={pdfUrl}
+          title="GST Invoice PDF"
+          style={{ width: "100%", height: "100vh", border: "none" }}
+        />
+      ) : (
+        <div className="d-flex justify-content-center align-items-center vh-100">
+          <h4>Generating Invoice PDF...</h4>
+        </div>
+      )}
+    </div>
   );
 };
 
