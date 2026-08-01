@@ -13,6 +13,45 @@ import { formatNumber } from "../components/numberUtils";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { AddBox, AddBoxRounded } from "@mui/icons-material";
 
+const renderParticulars = (nameStr) => {
+  if (!nameStr) return null;
+  const lines = String(nameStr)
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (lines.length === 0) return null;
+  const [mainTitle, ...subItems] = lines;
+  return (
+    <div>
+      <div style={{ fontWeight: 500 }}>{mainTitle}</div>
+      {subItems.length > 0 && (
+        <ul
+          style={{
+            margin: "4px 0 0 0",
+            paddingLeft: "15px",
+            fontSize: "0.9em",
+            textAlign: "left",
+            listStyleType: "disc",
+            listStylePosition: "inside",
+          }}
+        >
+          {subItems.map((sub, idx) => (
+            <li
+              style={{
+                listStyleType: "disc",
+                display: "list-item",
+              }}
+              key={idx}
+            >
+              {sub}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
 const AdminEditQuotation = () => {
   const navigate = useNavigate();
   const params = useParams();
@@ -462,7 +501,7 @@ const AdminEditQuotation = () => {
                         return (
                           <tr key={index}>
                             <td>{index + 1}</td>
-                            <td>{item?.name}</td>
+                            <td>{renderParticulars(item?.name)}</td>
                             <td>{item?.price}</td>
                           </tr>
                         );
@@ -617,11 +656,12 @@ const AdminEditQuotation = () => {
                           <td>{index + 1}</td>
                           <td>
                             <div className="form-fields">
-                              <input
+                              <textarea
                                 value={item?.name}
-                                type="text"
+                                rows={2}
                                 list="productOptionsList"
                                 className="form-control"
+                                placeholder="Particulars (Line 1: Main, Line 2+: Sub-items)"
                                 onChange={(e) => {
                                   const selectedProductName = e.target.value;
                                   setProductName(selectedProductName);
