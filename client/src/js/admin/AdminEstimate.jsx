@@ -34,6 +34,7 @@ const AdminEstimate = () => {
     amount: "",
     paymentDate: new Date().toISOString().split("T")[0],
     paymentMethod: "phonepe",
+    refNo: "",
   });
 
   const showModal = (bill, index) => {
@@ -215,6 +216,7 @@ const AdminEstimate = () => {
         setReceiveAmountData({
           ...receiveAmountData,
           amount: "",
+          refNo: "",
         });
         getReceiveAmountHistory(selectedEstimateId);
       } else {
@@ -660,6 +662,23 @@ const AdminEstimate = () => {
                       })
                     }
                   />
+                  <input
+                    type="text"
+                    style={{
+                      padding: "10px",
+                      flex: 1,
+                      border: "1px solid #d9d9d9",
+                      borderRadius: "4px",
+                    }}
+                    value={receiveAmountData.refNo}
+                    onChange={(e) =>
+                      setReceiveAmountData({
+                        ...receiveAmountData,
+                        refNo: e.target.value,
+                      })
+                    }
+                    placeholder="Ref. No"
+                  />
                   <button
                     type="submit"
                     style={{
@@ -733,6 +752,17 @@ const AdminEstimate = () => {
                       fontWeight: "600",
                     }}
                   >
+                    Ref. No
+                  </th>
+                  <th
+                    style={{
+                      backgroundColor: "#f9f9f9",
+                      padding: "12px",
+                      border: "1px solid #e0e0e0",
+                      textAlign: "left",
+                      fontWeight: "600",
+                    }}
+                  >
                     Date
                   </th>
                   {!showOnlyModelTable && (
@@ -771,6 +801,15 @@ const AdminEstimate = () => {
                         }}
                       >
                         {bill.paymentMethod}
+                      </td>
+                      <td
+                        style={{
+                          padding: "10px",
+                          border: "1px solid #e0e0e0",
+                          color: "#555",
+                        }}
+                      >
+                        {bill.refNo || "-"}
                       </td>
                       <td
                         style={{
