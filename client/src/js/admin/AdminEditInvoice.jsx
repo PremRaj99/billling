@@ -994,8 +994,21 @@ const AdminEditInvoice = () => {
                               className="text-danger"
                               style={{ cursor: "pointer" }}
                               onClick={() => {
-                                // remove index
-                                setData(data.filter((_, i) => i !== index));
+                                // remove index and update quantities state
+                                setData((prevData) =>
+                                  prevData.filter((_, i) => i !== index)
+                                );
+                                setQuantities((prevQuantities) => {
+                                  const entries =
+                                    Object.entries(prevQuantities);
+                                  const updatedEntries = entries.filter(
+                                    ([key]) => parseInt(key, 10) !== index
+                                  );
+                                  const reIndexed = updatedEntries.map(
+                                    ([_, val], idx) => [idx, val]
+                                  );
+                                  return Object.fromEntries(reIndexed);
+                                });
                               }}
                             />
                             <AddBoxRounded
