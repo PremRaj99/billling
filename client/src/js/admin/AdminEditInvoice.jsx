@@ -399,6 +399,16 @@ const AdminEditInvoice = () => {
   const year = dateObject.getFullYear();
   const formattedDate = `${day} ${month} ${year}`;
 
+  const formatCustomDate = (dateStr) => {
+    if (!dateStr) return "";
+    const dateObj = new Date(dateStr);
+    if (isNaN(dateObj.getTime())) return dateStr;
+    const d = dateObj.getDate();
+    const m = dateObj.toLocaleString("default", { month: "long" });
+    const y = dateObj.getFullYear();
+    return `${d} ${m} ${y}`;
+  };
+
   return (
     <AdminLayout>
       {/* PRODUCT LIST POPUP  */}
@@ -594,6 +604,14 @@ const AdminEditInvoice = () => {
                   <label htmlFor="">Mobile</label>
                   <h5 className="m-0 text-start w-100">{billingTo?.mobile}</h5>
                 </div>
+                {billingTo?.orderDate && (
+                  <div className="form-fields mb-3 center">
+                    <label htmlFor="">Order Date</label>
+                    <h5 className="m-0 text-start w-100">
+                      {formatCustomDate(billingTo?.orderDate)}
+                    </h5>
+                  </div>
+                )}
               </div>
               <div className="product-details">
                 <table className="table table-bordered tb">
@@ -649,30 +667,30 @@ const AdminEditInvoice = () => {
                             (item?.hsnCode && String(item.hsnCode).trim() !== "")
                         )
                         .map((item, index) => {
-                        const sqft = formatNumber(
-                          item?.length * item?.breadth * quantities[index]
-                        );
-                        return (
-                          <tr>
-                            <td>{index + 1}</td>
-                            <td>{item?.name}</td>
-                            <td>{item?.hsnCode}</td>
-                            <td>
-                              {item?.length} x {item?.breadth}
-                            </td>
-                            <td>
-                              <span>{quantities[index] || 0}</span>
-                            </td>
-                            <td>{sqft}</td>
-                            <td>{item?.price}</td>
-                            <td>{sqft * item?.price}</td>
-                            <td>{item?.cgst}%</td>
-                            <td>{(sqft * item?.price * item?.cgst) / 100}</td>
-                            <td>{item?.sgst}%</td>
-                            <td>{(sqft * item?.price * item?.sgst) / 100}</td>
-                          </tr>
-                        );
-                      })}
+                          const sqft = formatNumber(
+                            item?.length * item?.breadth * quantities[index]
+                          );
+                          return (
+                            <tr>
+                              <td>{index + 1}</td>
+                              <td>{item?.name}</td>
+                              <td>{item?.hsnCode}</td>
+                              <td>
+                                {item?.length} x {item?.breadth}
+                              </td>
+                              <td>
+                                <span>{quantities[index] || 0}</span>
+                              </td>
+                              <td>{sqft}</td>
+                              <td>{item?.price}</td>
+                              <td>{sqft * item?.price}</td>
+                              <td>{item?.cgst}%</td>
+                              <td>{(sqft * item?.price * item?.cgst) / 100}</td>
+                              <td>{item?.sgst}%</td>
+                              <td>{(sqft * item?.price * item?.sgst) / 100}</td>
+                            </tr>
+                          );
+                        })}
                   </tbody>
                 </table>
                 {/* Total  */}
@@ -900,6 +918,17 @@ const AdminEditInvoice = () => {
                   placeholder="Enter mobile"
                   onChange={handleBillingChange}
                   value={billingTo?.mobile || ""}
+                />
+              </div>
+              <div className="form-fields mb-3 center">
+                <label htmlFor="">Order Date</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  name="orderDate"
+                  placeholder="Enter order date"
+                  onChange={handleBillingChange}
+                  value={billingTo?.orderDate || ""}
                 />
               </div>
             </div>

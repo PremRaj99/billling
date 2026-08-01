@@ -120,6 +120,16 @@ const AdminPrintInvoice = () => {
   const year = dateObject.getFullYear();
   const formattedDate = `${day} ${month} ${year}`;
 
+  const formatCustomDate = (dateStr) => {
+    if (!dateStr) return "";
+    const dateObj = new Date(dateStr);
+    if (isNaN(dateObj.getTime())) return dateStr;
+    const d = dateObj.getDate();
+    const m = dateObj.toLocaleString("default", { month: "long" });
+    const y = dateObj.getFullYear();
+    return `${d} ${m} ${y}`;
+  };
+
   return (
     <AdminLayout>
       <div ref={pdfRef} className="preview-container">
@@ -192,6 +202,16 @@ const AdminPrintInvoice = () => {
               </label>
               <h5 className="m-0 text-start w-100">{billingTo?.mobile}</h5>
             </div>
+            {billingTo?.orderDate && (
+              <div className="form-fields mb-3 center">
+                <label htmlFor="" className="me-3">
+                  Order Date
+                </label>
+                <h5 className="m-0 text-start w-100">
+                  {formatCustomDate(billingTo?.orderDate)}
+                </h5>
+              </div>
+            )}
           </div>
           <div className="product-details">
             <table className="table table-bordered tb">
