@@ -154,67 +154,23 @@ const AdminEditQuotation = () => {
                     <small>Product Details</small>
                   </th>
                   <th>
-                    <small>Size</small>
-                  </th>
-                  <th>
-                    <small>Qty</small>
-                  </th>
-                  <th>
-                    <small>Total Sqft</small>
-                  </th>
-                  <th>
                     <small>Rate</small>
-                  </th>
-                  <th>
-                    <small>Total Value</small>
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {data &&
                   data?.map((item, index) => {
-                    const sqft = formatNumber(
-                      item?.length * item?.breadth * quantities[index]
-                    );
                     return (
-                      <tr>
+                      <tr key={index}>
                         <td>{index + 1}</td>
                         <td>{item?.name}</td>
-                        <td>
-                          {item?.length} x {item?.breadth}
-                        </td>
-                        <td>
-                          <span>{quantities[index] || 0}</span>
-                        </td>
-                        <td>{sqft}</td>
                         <td>{item?.price}</td>
-                        <td>{formatNumber(sqft * item?.price)}</td>
                       </tr>
                     );
                   })}
               </tbody>
             </table>
-            {data?.length > 0 && (
-              <div className="row mt-5">
-                <div className="col-8"></div>
-                <div className="col-4">
-                  <table className="table tb table-bordered">
-                    <thead>
-                      <tr>
-                        <td className="tbtotal" colSpan={100}>
-                          <b>Total</b>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>Total Value</td>
-                        <td>{formatNumber(totalTaxableValue)}</td>
-                      </tr>
-                    </thead>
-                  </table>
-                </div>
-              </div>
-            )}
-            {/* Total  */}
           </div>
           <div className="address-container w-100">
             <div className="address">

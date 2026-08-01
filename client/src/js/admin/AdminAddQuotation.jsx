@@ -258,8 +258,6 @@ const AdminAddQuotation = () => {
       const cleanedProducts = data.filter(
         (item) =>
           (item?.name && String(item.name).trim() !== "") ||
-          (item?.length && String(item.length).trim() !== "") ||
-          (item?.breadth && String(item.breadth).trim() !== "") ||
           (item?.price && String(item.price).trim() !== "")
       );
 
@@ -267,7 +265,6 @@ const AdminAddQuotation = () => {
         quotationId: invoiceId,
         invoice: invoice,
         billingTo: billingTo,
-        totalValue: totalTaxableValue,
         products: cleanedProducts,
       };
       const res = await axios.post(
@@ -311,24 +308,15 @@ const AdminAddQuotation = () => {
 
     const isAnyFieldFilled = Boolean(
       (lastRow?.name && String(lastRow.name).trim() !== "") ||
-      (lastRow?.length && String(lastRow.length).trim() !== "") ||
-      (lastRow?.breadth && String(lastRow.breadth).trim() !== "") ||
       (lastRow?.price && String(lastRow.price).trim() !== "")
     );
 
     if (isAnyFieldFilled) {
       const newProduct = {
-        breadth: "",
-        length: "",
         name: "",
         price: "",
-        quantity: 1,
       };
       setData((prev) => [...prev, newProduct]);
-      setQuantities((prev) => ({
-        ...prev,
-        [data.length]: 1,
-      }));
     }
   }, [data]);
 
@@ -535,16 +523,7 @@ const AdminAddQuotation = () => {
                         <small>Particulars</small>
                       </th>
                       <th>
-                        <small>Size</small>
-                      </th>
-                      <th>
-                        <small>Qty</small>
-                      </th>
-                      <th>
                         <small>Rate</small>
-                      </th>
-                      <th>
-                        <small>Total</small>
                       </th>
                     </tr>
                   </thead>
@@ -554,51 +533,19 @@ const AdminAddQuotation = () => {
                         ?.filter(
                           (item) =>
                             (item?.name && String(item.name).trim() !== "") ||
-                            (item?.length && String(item.length).trim() !== "") ||
-                            (item?.breadth && String(item.breadth).trim() !== "") ||
                             (item?.price && String(item.price).trim() !== "")
                         )
                         .map((item, index) => {
-                        const sqft = formatNumber(
-                          item?.length * item?.breadth * quantities[index]
-                        );
                         return (
-                          <tr>
+                          <tr key={index}>
                             <td>{index + 1}</td>
                             <td>{item?.name}</td>
-                            <td>
-                              {item?.length} x {item?.breadth}
-                            </td>
-                            <td>
-                              <span>{quantities[index] || 0}</span>
-                            </td>
                             <td>{item?.price}</td>
-                            <td>{sqft * item?.price}</td>
                           </tr>
                         );
                       })}
                   </tbody>
                 </table>
-                {data?.length > 0 && (
-                  <div className="row mt-5 w-100">
-                    <div className="col-8"></div>
-                    <div className="col-4">
-                      <table className="table tb table-bordered">
-                        <thead>
-                          <tr>
-                            <td className="tbtotal" colSpan={100}>
-                              <b>Total</b>
-                            </td>
-                          </tr>
-                          <tr>
-                            <td>Total Value</td>
-                            <td>{formatNumber(totalTaxableValue)}</td>
-                          </tr>
-                        </thead>
-                      </table>
-                    </div>
-                  </div>
-                )}
               </div>
               {/* Total  */}
 
@@ -745,16 +692,7 @@ const AdminAddQuotation = () => {
                       <small>Particulars</small>
                     </th>
                     <th>
-                      <small>Size</small>
-                    </th>
-                    <th>
-                      <small>Qty</small>
-                    </th>
-                    <th>
                       <small>Rate</small>
-                    </th>
-                    <th>
-                      <small>Total</small>
                     </th>
                     <th>
                       <small>Action</small>
@@ -764,8 +702,6 @@ const AdminAddQuotation = () => {
                 <tbody>
                   {data &&
                     data?.map((item, index) => {
-                      const sqft =
-                        item?.length * item?.breadth * quantities[index];
                       return (
                         <tr key={index}>
                           <td>{index + 1}</td>
@@ -786,7 +722,6 @@ const AdminAddQuotation = () => {
                                         option.name === selectedProductName
                                     );
 
-                                  // Update the specific item's name and price if a match is found
                                   if (selectedProduct) {
                                     const updatedData = [...data];
                                     updatedData[index] = {
@@ -795,60 +730,21 @@ const AdminAddQuotation = () => {
                                       price: selectedProduct.price,
                                     };
                                     setData(updatedData);
-                                    console.log(selectedProduct);
-                                    console.log(updatedData);
                                   } else {
-                                    // Allow user to manually input a name without selecting from the list
                                     const updatedData = [...data];
                                     updatedData[index] = {
                                       ...updatedData[index],
                                       name: selectedProductName,
                                     };
                                     setData(updatedData);
-                                    console.log(data);
                                   }
                                 }}
                               />
-                              {/* Dynamically generated datalist */}
                               <datalist id="productOptionsList">
                                 {productNameOptions.map((option, index) => (
                                   <option key={index} value={option.name} />
                                 ))}
                               </datalist>
-                            </div>
-                          </td>
-                          <td>
-                            <div className="d-flex form-fields">
-                              <input
-                                type="text"
-                                className="w-50 form-control"
-                                name="length"
-                                placeholder="length"
-                                value={item?.length}
-                                onChange={(e) =>
-                                  handleInputChange(e, index, "length")
-                                }
-                              />
-                              <input
-                                type="text"
-                                className="w-50 form-control"
-                                name="breadth"
-                                value={item?.breadth}
-                                placeholder="breadth"
-                                onChange={(e) =>
-                                  handleInputChange(e, index, "breadth")
-                                }
-                              />
-                            </div>
-                          </td>
-                          <td>
-                            <div className="form-fields">
-                              <input
-                                type="text"
-                                name="quantity"
-                                value={quantities[index]}
-                                onChange={(e) => handleQuantityChange(e, index)}
-                              />
                             </div>
                           </td>
                           <td>
@@ -863,38 +759,14 @@ const AdminAddQuotation = () => {
                               />
                             </div>
                           </td>
-                          <td>
-                            <div className="form-fields">
-                              <input
-                                name="total"
-                                onChange={(e) =>
-                                  handleInputChange(e, index, "total")
-                                }
-                                value={formatNumber(sqft * item?.price)}
-                                type="text"
-                              />
-                            </div>
-                          </td>
                           <td style={{ display: "flex", border: "none" }}>
                             <DeleteIcon
                               className="text-danger"
                               style={{ cursor: "pointer" }}
                               onClick={() => {
-                                // remove index and update quantities state
                                 setData((prevData) =>
                                   prevData.filter((_, i) => i !== index)
                                 );
-                                setQuantities((prevQuantities) => {
-                                  const entries =
-                                    Object.entries(prevQuantities);
-                                  const updatedEntries = entries.filter(
-                                    ([key]) => parseInt(key, 10) !== index
-                                  );
-                                  const reIndexed = updatedEntries.map(
-                                    ([_, val], idx) => [idx, val]
-                                  );
-                                  return Object.fromEntries(reIndexed);
-                                });
                               }}
                             />
                           </td>
@@ -913,28 +785,6 @@ const AdminAddQuotation = () => {
               >
                 Add Product from List
               </button>
-
-              {/* Total  */}
-              {data?.length > 0 && (
-                <div className="row mt-5">
-                  <div className="col-8"></div>
-                  <div className="col-4">
-                    <table className="table tb table-bordered">
-                      <thead>
-                        <tr>
-                          <td className="tbtotal" colSpan={100}>
-                            <b>Total</b>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td>Total Value</td>
-                          <td>{formatNumber(totalTaxableValue)}</td>
-                        </tr>
-                      </thead>
-                    </table>
-                  </div>
-                </div>
-              )}
             </div>
             <div className="address-container w-100">
               <div className="address">
