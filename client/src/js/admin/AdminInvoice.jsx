@@ -305,7 +305,15 @@ const AdminInvoice = () => {
                       <small>{formatNumber(item?.grandTotal)}</small>
                     </td>
                     <td>
-                      <small>{item?.status}</small>
+                      <small>
+                        {item?.isCancelled || item?.status === "cancelled" ? (
+                          <span className="badge bg-danger text-white">
+                            Cancelled ({item?.status})
+                          </span>
+                        ) : (
+                          item?.status
+                        )}
+                      </small>
                     </td>
                     <td>
                       <small>

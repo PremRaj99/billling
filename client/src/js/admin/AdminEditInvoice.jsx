@@ -33,6 +33,8 @@ const AdminEditInvoice = () => {
   const [billingTo, setBillingTo] = useState("");
   const [advancePayment, setAdvancePayment] = useState("");
   const [balancePayment, setBalancePayment] = useState("");
+  const [status, setStatus] = useState("unpaid");
+  const [isCancelled, setIsCancelled] = useState(false);
   //! TOTAL
   const [totalTaxableValue, setTotalTaxableValue] = useState(0);
   const [totalCGST, setTotalCGST] = useState(0);
@@ -153,6 +155,12 @@ const AdminEditInvoice = () => {
         setInvoiceId(res.data.data.invoiceId);
         setAdvancePayment(res.data.data.advancePayment);
         setBalancePayment(res.data.data.balancePayment);
+        setStatus(res.data.data.status || "unpaid");
+        setIsCancelled(
+          res.data.data.isCancelled !== undefined
+            ? res.data.data.isCancelled
+            : res.data.data.status === "cancelled"
+        );
         const qty = {};
         res.data.data.products.forEach((product, index) => {
           const { quantity } = product;
@@ -255,7 +263,9 @@ const AdminEditInvoice = () => {
     }));
   }
 
-  async function handleUpdateInvoice(status) {
+  async function handleUpdateInvoice(statusParam, isCancelledParam) {
+    const finalIsCancelled =
+      isCancelledParam !== undefined ? isCancelledParam : isCancelled;
     try {
       const invoiceObject = {
         invoiceId: invoiceId,
@@ -268,7 +278,8 @@ const AdminEditInvoice = () => {
         products: data,
         advancePayment: advancePayment,
         balancePayment: balancePayment,
-        status: status,
+        status: statusParam,
+        isCancelled: finalIsCancelled,
       };
       const res = await axios.post(
         "/api/invoice/update-invoice",
@@ -276,6 +287,8 @@ const AdminEditInvoice = () => {
       );
       if (res.data.success) {
         message.success(res.data.message);
+        setStatus(statusParam);
+        setIsCancelled(finalIsCancelled);
         navigate("/admin-invoice");
       } else {
         message.error(res.data.message);
@@ -477,7 +490,31 @@ const AdminEditInvoice = () => {
       {previewMode ? (
         <>
           <div ref={pdfRef} className="preview-container">
-            <div className="invoice-container preview">
+            <div className="invoice-container preview" style={{ position: "relative" }}>
+              {(isCancelled || status === "cancelled") && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "40%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%) rotate(-30deg)",
+                    fontSize: "90px",
+                    fontWeight: "900",
+                    color: "rgba(220, 53, 69, 0.6)",
+                    border: "8px dashed rgba(220, 53, 69, 0.4)",
+                    padding: "15px 45px",
+                    borderRadius: "16px",
+                    textTransform: "uppercase",
+                    letterSpacing: "12px",
+                    pointerEvents: "none",
+                    zIndex: 999,
+                    userSelect: "none",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  CANCELLED
+                </div>
+              )}
               <div className="invoice-img"></div>
               {/* Billing Details */}
               <div className="bill-to-details">
@@ -686,7 +723,31 @@ const AdminEditInvoice = () => {
               </button>
             </div>
           </div>
-          <div className="invoice-container">
+          <div className="invoice-container" style={{ position: "relative" }}>
+            {(isCancelled || status === "cancelled") && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "40%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%) rotate(-30deg)",
+                  fontSize: "90px",
+                  fontWeight: "900",
+                  color: "rgba(220, 53, 69, 0.6)",
+                  border: "8px dashed rgba(220, 53, 69, 0.4)",
+                  padding: "15px 45px",
+                  borderRadius: "16px",
+                  textTransform: "uppercase",
+                  letterSpacing: "12px",
+                  pointerEvents: "none",
+                  zIndex: 999,
+                  userSelect: "none",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                CANCELLED
+              </div>
+            )}
             <div className="invoice-img"></div>
             {/* Billing Details */}
             <div className="bill-to-details">
@@ -1136,17 +1197,51 @@ const AdminEditInvoice = () => {
           </div>
 
           <button
-            onClick={() => handleUpdateInvoice("unpaid")}
+            onClick={() => handleUpdateInvoice("unpaid", isCancelled)}
             className="me-2 mt-3 mx-2 b-btn py-2 mt-4"
           >
             Update Invoice as Unpaid
           </button>
           <button
-            onClick={() => handleUpdateInvoice("paid")}
+            onClick={() => handleUpdateInvoice("paid", isCancelled)}
             className="mt-3 mx-2 b-btn py-2 mt-4"
           >
             Update Invoice as Paid
           </button>
+          {!isCancelled && status !== "cancelled" ? (
+            <button
+              onClick={() => {
+                const confirmCancel = window.confirm(
+                  "Are you sure you want to cancel this invoice?"
+                );
+                if (confirmCancel) {
+                  handleUpdateInvoice(status, true);
+                }
+              }}
+              className="mt-3 mx-2 b-btn py-2 mt-4 text-white"
+              style={{ backgroundColor: "#dc3545", borderColor: "#dc3545" }}
+            >
+              Cancel Invoice
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                const confirmRestore = window.confirm(
+                  "Are you sure you want to restore this invoice?"
+                );
+                if (confirmRestore) {
+                  handleUpdateInvoice(
+                    status === "cancelled" ? "unpaid" : status,
+                    false
+                  );
+                }
+              }}
+              className="mt-3 mx-2 b-btn py-2 mt-4 text-dark"
+              style={{ backgroundColor: "#ffc107", borderColor: "#ffc107" }}
+            >
+              Restore / Uncancel Invoice
+            </button>
+          )}
         </>
       )}
     </AdminLayout>

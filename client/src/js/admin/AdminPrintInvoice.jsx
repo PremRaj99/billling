@@ -22,6 +22,8 @@ const AdminPrintInvoice = () => {
   const [totalSGST, setTotalSGST] = useState(0);
   const [grandTotal, setGrandTotal] = useState(0);
   const [data, setData] = useState([]);
+  const [status, setStatus] = useState("unpaid");
+  const [isCancelled, setIsCancelled] = useState(false);
 
   async function getInvoiceById() {
     try {
@@ -33,6 +35,12 @@ const AdminPrintInvoice = () => {
         setBillingTo(res.data.data.billingTo);
         setInvoice(res.data.data.invoice);
         setInvoiceId(res.data.data.invoiceId);
+        setStatus(res.data.data.status || "unpaid");
+        setIsCancelled(
+          res.data.data.isCancelled !== undefined
+            ? res.data.data.isCancelled
+            : res.data.data.status === "cancelled"
+        );
         const qty = {};
         res.data.data.products.forEach((product, index) => {
           const { quantity } = product;
@@ -115,7 +123,31 @@ const AdminPrintInvoice = () => {
   return (
     <AdminLayout>
       <div ref={pdfRef} className="preview-container">
-        <div className="invoice-container preview">
+        <div className="invoice-container preview" style={{ position: "relative" }}>
+          {(isCancelled || status === "cancelled") && (
+            <div
+              style={{
+                position: "absolute",
+                top: "40%",
+                left: "50%",
+                transform: "translate(-50%, -50%) rotate(-30deg)",
+                fontSize: "90px",
+                fontWeight: "900",
+                color: "rgba(220, 53, 69, 0.6)",
+                border: "8px dashed rgba(220, 53, 69, 0.4)",
+                padding: "15px 45px",
+                borderRadius: "16px",
+                textTransform: "uppercase",
+                letterSpacing: "12px",
+                pointerEvents: "none",
+                zIndex: 999,
+                userSelect: "none",
+                whiteSpace: "nowrap",
+              }}
+            >
+              CANCELLED
+            </div>
+          )}
           <div className="invoice-img"></div>
           {/* Billing Details */}
           <div className="bill-to-details">
