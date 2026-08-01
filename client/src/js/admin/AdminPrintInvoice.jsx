@@ -24,6 +24,7 @@ const AdminPrintInvoice = () => {
   const [data, setData] = useState([]);
   const [status, setStatus] = useState("unpaid");
   const [isCancelled, setIsCancelled] = useState(false);
+  const [hasSignature, setHasSignature] = useState(false);
 
   async function getInvoiceById() {
     try {
@@ -41,6 +42,7 @@ const AdminPrintInvoice = () => {
             ? res.data.data.isCancelled
             : res.data.data.status === "cancelled"
         );
+        setHasSignature(Boolean(res.data.data.hasSignature));
         const qty = {};
         res.data.data.products.forEach((product, index) => {
           const { quantity } = product;
@@ -347,15 +349,34 @@ const AdminPrintInvoice = () => {
             )}
           </div>
           <div className="address-container w-100">
-            <div className="address justify-content-end">
-              <p className="m-0 text-center">
-                <b>Azim Art Point</b>
-                <br />
-                <br />
-                <br />
-                <br />
-                <b>Authorized Signature</b>
-              </p>
+            <div
+              className="address justify-content-end"
+              style={{ position: "relative", alignItems: "flex-end" }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                }}
+              >
+                {hasSignature && (
+                  <img
+                    src="/artpoint-sign.png"
+                    alt="Signature"
+                    style={{
+                      height: "70px",
+                      marginBottom: "-12px",
+                      objectFit: "contain",
+                    }}
+                  />
+                )}
+                <p className="m-0 text-center">
+                  <b>Azim Art Point</b>
+                  <br />
+                  <b>Authorized Signature</b>
+                </p>
+              </div>
             </div>
             <div className="add-img"></div>
           </div>

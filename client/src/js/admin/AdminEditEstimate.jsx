@@ -19,6 +19,7 @@ const AdminEditEstimate = () => {
   const params = useParams();
   const pdfRef = useRef();
   const [previewMode, setPreviewMode] = useState(false);
+  const [showSignature, setShowSignature] = useState(false);
   const [customers, setCustomers] = useState(null);
   const [products, setProducts] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -146,6 +147,7 @@ const AdminEditEstimate = () => {
         setAdvancePayment(res.data.data.advancePayment);
         setDiscount(res.data.data.discount);
         setBalancePayment(res.data.data.balancePayment);
+        setShowSignature(Boolean(res.data.data.hasSignature));
         const qty = {};
         res.data.data.products.forEach((product, index) => {
           const { quantity } = product;
@@ -288,6 +290,7 @@ const AdminEditEstimate = () => {
         discount: discount,
         balancePayment: balancePayment,
         status: status,
+        hasSignature: showSignature,
       };
       const res = await axios.post(
         "/api/estimate/update-estimate",
@@ -602,8 +605,30 @@ const AdminEditEstimate = () => {
                 )}
               </div>
               <div className="address-container w-100">
-                <div className="address justify-content-end">
-                  <b>Authorized Signature</b>
+                <div
+                  className="address justify-content-end"
+                  style={{ position: "relative", alignItems: "flex-end" }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                    }}
+                  >
+                    {showSignature && (
+                      <img
+                        src="/artpoint-sign.png"
+                        alt="Signature"
+                        style={{
+                          height: "70px",
+                          marginBottom: "-12px",
+                          objectFit: "contain",
+                        }}
+                      />
+                    )}
+                    <b>Authorized Signature</b>
+                  </div>
                 </div>
                 <div className="add-img"></div>
               </div>
@@ -615,7 +640,14 @@ const AdminEditEstimate = () => {
           >
             Back to Editing Mode
           </button>
-          <button onClick={downloadPdf} className="b-btn">
+          <button
+            type="button"
+            className="b-btn me-2 mt-4"
+            onClick={() => setShowSignature(!showSignature)}
+          >
+            {showSignature ? "Remove Signature" : "Add Signature"}
+          </button>
+          <button onClick={downloadPdf} className="b-btn mt-4">
             Download PDF
           </button>
         </>
@@ -999,8 +1031,30 @@ const AdminEditEstimate = () => {
               )}
             </div>
             <div className="address-container w-100">
-              <div className="address justify-content-end">
-                <b>Authorized Signature</b>
+              <div
+                className="address justify-content-end"
+                style={{ position: "relative", alignItems: "flex-end" }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
+                >
+                  {showSignature && (
+                    <img
+                      src="/artpoint-sign.png"
+                      alt="Signature"
+                      style={{
+                        height: "70px",
+                        marginBottom: "-12px",
+                        objectFit: "contain",
+                      }}
+                    />
+                  )}
+                  <b>Authorized Signature</b>
+                </div>
               </div>
               <div className="add-img"></div>
             </div>
@@ -1016,6 +1070,13 @@ const AdminEditEstimate = () => {
             className="mt-3 mx-2 b-btn py-2"
           >
             Update as Paid
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowSignature(!showSignature)}
+            className="mt-3 mx-2 b-btn py-2"
+          >
+            {showSignature ? "Remove Signature" : "Add Signature"}
           </button>
         </>
       )}

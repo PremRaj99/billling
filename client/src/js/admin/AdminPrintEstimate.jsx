@@ -22,6 +22,7 @@ const AdminPrintEstimate = () => {
   const [discount, setDiscount] = useState("");
   const [balancePayment, setBalancePayment] = useState("");
   const [totalTaxableValue, setTotalTaxableValue] = useState(0);
+  const [hasSignature, setHasSignature] = useState(false);
   const [data, setData] = useState([]);
 
   async function getInvoiceById() {
@@ -37,6 +38,7 @@ const AdminPrintEstimate = () => {
         setAdvancePayment(res.data.data.advancePayment);
         setDiscount(res.data.data.discount);
         setBalancePayment(res.data.data.balancePayment);
+        setHasSignature(Boolean(res.data.data.hasSignature));
         const qty = {};
         res.data.data.products.forEach((product, index) => {
           const { quantity } = product;
@@ -245,8 +247,30 @@ const AdminPrintEstimate = () => {
             )}
           </div>
           <div className="address-container w-100">
-            <div className="address justify-content-end">
-              <b>Authorized Signature</b>
+            <div
+              className="address justify-content-end"
+              style={{ position: "relative", alignItems: "flex-end" }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                }}
+              >
+                {hasSignature && (
+                  <img
+                    src="/artpoint-sign.png"
+                    alt="Signature"
+                    style={{
+                      height: "70px",
+                      marginBottom: "-12px",
+                      objectFit: "contain",
+                    }}
+                  />
+                )}
+                <b>Authorized Signature</b>
+              </div>
             </div>
             <div className="add-img"></div>
           </div>

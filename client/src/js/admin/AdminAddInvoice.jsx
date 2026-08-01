@@ -26,6 +26,7 @@ const AdminAddInvoice = () => {
   const [filteredUsers, setFilteredUsers] = useState(null);
   const [showProducts, setShowProducts] = useState(false);
   const [showCustomers, setShowCustomers] = useState(false);
+  const [showSignature, setShowSignature] = useState(false);
   //!
   const [quantities, setQuantities] = useState({});
   const [invoiceId, setInvoiceId] = useState(null);
@@ -254,6 +255,7 @@ const AdminAddInvoice = () => {
         advancePayment: advancePayment,
         balancePayment: balancePayment,
         status: status,
+        hasSignature: showSignature,
       };
       const res = await axios.post("/api/invoice/add-invoice", invoiceObject);
       if (res.data.success) {
@@ -703,14 +705,34 @@ const AdminAddInvoice = () => {
               </div>
             </div>
             <div className="address-container w-100">
-              <div className="address justify-content-end">
-                <p className="m-0 text-center">
-                  <b>Azim Art Point</b>
-                  <br />
-                  <br />
-                  <br />
-                  <b>Authorized Signature</b>
-                </p>
+              <div
+                className="address justify-content-end"
+                style={{ position: "relative", alignItems: "flex-end" }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
+                >
+                  {showSignature && (
+                    <img
+                      src="/artpoint-sign.png"
+                      alt="Signature"
+                      style={{
+                        height: "70px",
+                        marginBottom: "-12px",
+                        objectFit: "contain",
+                      }}
+                    />
+                  )}
+                  <p className="m-0 text-center">
+                    <b>Azim Art Point</b>
+                    <br />
+                    <b>Authorized Signature</b>
+                  </p>
+                </div>
               </div>
               <div className="add-img"></div>
             </div>
@@ -720,6 +742,13 @@ const AdminAddInvoice = () => {
             onClick={() => setPreviewMode(!previewMode)}
           >
             Back to Editing Mode
+          </button>
+          <button
+            type="button"
+            className="b-btn me-2 mt-4"
+            onClick={() => setShowSignature(!showSignature)}
+          >
+            {showSignature ? "Remove Signature" : "Add Signature"}
           </button>
           {/* <button onClick={downloadPdf} className="b-btn">
             Download PDF
@@ -1170,14 +1199,34 @@ const AdminAddInvoice = () => {
               )}
             </div>
             <div className="address-container w-100">
-              <div className="address justify-content-end">
-                <p className="m-0 text-center">
-                  <b>Azim Art Point</b>
-                  <br />
-                  <br />
-                  <br />
-                  <b>Authorized Signature</b>
-                </p>
+              <div
+                className="address justify-content-end"
+                style={{ position: "relative", alignItems: "flex-end" }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
+                >
+                  {showSignature && (
+                    <img
+                      src="/artpoint-sign.png"
+                      alt="Signature"
+                      style={{
+                        height: "70px",
+                        marginBottom: "-12px",
+                        objectFit: "contain",
+                      }}
+                    />
+                  )}
+                  <p className="m-0 text-center">
+                    <b>Azim Art Point</b>
+                    <br />
+                    <b>Authorized Signature</b>
+                  </p>
+                </div>
               </div>
               <div className="add-img"></div>
             </div>
@@ -1194,6 +1243,13 @@ const AdminAddInvoice = () => {
             className="mt-3 mx-2 b-btn py-2 mt-4"
           >
             Save Invoice as Paid
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowSignature(!showSignature)}
+            className="mt-3 mx-2 b-btn py-2 mt-4"
+          >
+            {showSignature ? "Remove Signature" : "Add Signature"}
           </button>
         </>
       )}
