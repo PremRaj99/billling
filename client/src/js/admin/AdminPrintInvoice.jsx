@@ -146,9 +146,21 @@ const AdminPrintInvoice = () => {
     }
   }, [data, invoiceId, hasSignature, isCancelled]);
 
+  const [pdfDoc, setPdfDoc] = useState(null);
+
+  useEffect(() => {
+    if (invoiceId || params?.invoiceId) {
+      document.title = invoiceId || params?.invoiceId;
+    }
+  }, [invoiceId, params?.invoiceId]);
+
   const generatePdf = async () => {
     try {
       const doc = new jsPDF("p", "mm", "a4");
+      const invTitle = invoiceId || params?.invoiceId || "Invoice";
+      doc.setProperties({ title: invTitle });
+      document.title = invTitle;
+
       const pageHeight = doc.internal.pageSize.height;
 
       let currentY = 8;
@@ -444,6 +456,7 @@ const AdminPrintInvoice = () => {
         }
       }
 
+      setPdfDoc(doc);
       const pdfBlob = doc.output("blob");
       const blobUrl = URL.createObjectURL(pdfBlob);
       setPdfUrl(blobUrl);
@@ -459,7 +472,7 @@ const AdminPrintInvoice = () => {
         style={{
           position: "fixed",
           top: "10px",
-          right: "20px",
+          left: "20px",
           zIndex: 9999,
           display: "flex",
           gap: "10px",
@@ -471,12 +484,22 @@ const AdminPrintInvoice = () => {
         >
           Back to List
         </button>
+        {pdfDoc && (
+          <button
+            onClick={() =>
+              pdfDoc.save(`${invoiceId || params?.invoiceId || "Invoice"}.pdf`)
+            }
+            className="btn btn-primary shadow-sm"
+          >
+            Download PDF
+          </button>
+        )}
       </div>
 
       {pdfUrl ? (
         <iframe
           src={pdfUrl}
-          title="GST Invoice PDF"
+          title={invoiceId || params?.invoiceId || "Invoice PDF"}
           style={{ width: "100%", height: "100vh", border: "none" }}
         />
       ) : (

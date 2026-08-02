@@ -73,16 +73,20 @@ const AdminStaffMonthlyReport = () => {
     { month: "long" }
   );
 
+  const [pdfDoc, setPdfDoc] = useState(null);
+
+  const reportTitle = `Monthly Attendance - ${monthName} ${selectedYear}`;
+
   useEffect(() => {
-    if (report && report.length >= 0) {
-      generatePdf();
-    }
-  }, [report, selectedMonth, selectedYear]);
+    document.title = reportTitle;
+  }, [reportTitle]);
 
   const generatePdf = async () => {
     try {
       // Landscape A4 for wide table fit
       const doc = new jsPDF("l", "mm", "a4");
+      doc.setProperties({ title: reportTitle });
+      document.title = reportTitle;
       const pageWidth = doc.internal.pageSize.width; // 297 mm
       const pageHeight = doc.internal.pageSize.height; // 210 mm
 
@@ -231,6 +235,7 @@ const AdminStaffMonthlyReport = () => {
         console.error("Failed to add bottom image:", e);
       }
 
+      setPdfDoc(doc);
       const pdfBlob = doc.output("blob");
       const blobUrl = URL.createObjectURL(pdfBlob);
       setPdfUrl(blobUrl);
@@ -246,7 +251,7 @@ const AdminStaffMonthlyReport = () => {
         style={{
           position: "fixed",
           top: "10px",
-          right: "20px",
+          left: "20px",
           zIndex: 9999,
           display: "flex",
           alignItems: "center",
@@ -284,12 +289,22 @@ const AdminStaffMonthlyReport = () => {
         >
           Back to Staff
         </button>
+        {pdfDoc && (
+          <button
+            onClick={() =>
+              pdfDoc.save(`${reportTitle.replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`)
+            }
+            className="btn btn-primary btn-sm shadow-sm"
+          >
+            Download PDF
+          </button>
+        )}
       </div>
 
       {pdfUrl ? (
         <iframe
           src={pdfUrl}
-          title="Monthly Attendance PDF"
+          title={reportTitle}
           style={{ width: "100%", height: "100vh", border: "none" }}
         />
       ) : (

@@ -108,15 +108,19 @@ const AdminStaffDetail = () => {
     { month: "long" }
   );
 
+  const reportTitle = staff?.name
+    ? `${staff.name} - ${monthName} ${selectedYear}`
+    : `Staff Report - ${monthName} ${selectedYear}`;
+
   useEffect(() => {
-    if (staff) {
-      generatePdf();
-    }
-  }, [staff, attendance, loans, selectedMonth, selectedYear]);
+    document.title = reportTitle;
+  }, [reportTitle]);
 
   const generatePdf = async () => {
     try {
       const doc = new jsPDF("p", "mm", "a4");
+      doc.setProperties({ title: reportTitle });
+      document.title = reportTitle;
       const pageHeight = doc.internal.pageSize.height;
 
       let currentY = 8;
@@ -295,6 +299,7 @@ const AdminStaffDetail = () => {
         console.error("Failed to add bottom image:", e);
       }
 
+      setPdfDoc(doc);
       const pdfBlob = doc.output("blob");
       const blobUrl = URL.createObjectURL(pdfBlob);
       setPdfUrl(blobUrl);
@@ -310,7 +315,7 @@ const AdminStaffDetail = () => {
         style={{
           position: "fixed",
           top: "10px",
-          right: "20px",
+          left: "20px",
           zIndex: 9999,
           display: "flex",
           alignItems: "center",
@@ -348,12 +353,22 @@ const AdminStaffDetail = () => {
         >
           Back to Staff
         </button>
+        {pdfDoc && (
+          <button
+            onClick={() =>
+              pdfDoc.save(`${reportTitle.replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`)
+            }
+            className="btn btn-primary btn-sm shadow-sm"
+          >
+            Download PDF
+          </button>
+        )}
       </div>
 
       {pdfUrl ? (
         <iframe
           src={pdfUrl}
-          title="Staff Detail PDF"
+          title={reportTitle}
           style={{ width: "100%", height: "100vh", border: "none" }}
         />
       ) : (

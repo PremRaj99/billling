@@ -97,9 +97,21 @@ const AdminPrintEstimate = () => {
     }
   }, [data, invoiceId, hasSignature]);
 
+  const [pdfDoc, setPdfDoc] = useState(null);
+
+  useEffect(() => {
+    if (invoiceId || params?.estimateId) {
+      document.title = invoiceId || params?.estimateId;
+    }
+  }, [invoiceId, params?.estimateId]);
+
   const generatePdf = async () => {
     try {
       const doc = new jsPDF("p", "mm", "a4");
+      const estTitle = invoiceId || params?.estimateId || "Estimate";
+      doc.setProperties({ title: estTitle });
+      document.title = estTitle;
+
       const pageHeight = doc.internal.pageSize.height;
 
       let currentY = 8;
@@ -193,7 +205,7 @@ const AdminPrintEstimate = () => {
       });
 
       autoTable(doc, {
-        head: [["S. No.", "Product Details", "Size", "Qty", "Total Sqft", "Rate", "Total Value"]],
+        head: [["Sr No", "Product Details", "Size", "Qty", "Total Sqft", "Rate", "Total Value"]],
         body: tableRows,
         startY: currentY,
         theme: "grid",
@@ -225,7 +237,7 @@ const AdminPrintEstimate = () => {
           3: { cellWidth: 14, halign: "center" },
           4: { cellWidth: 20, halign: "center" },
           5: { cellWidth: 18, halign: "center" },
-          6: { cellWidth: 20, halign: "center" },
+          6: { cellWidth: 24, halign: "center" },
         },
         willDrawCell: (d) => {
           if (d.section === "body" && d.column.index === 1) {
@@ -351,6 +363,7 @@ const AdminPrintEstimate = () => {
         console.error("Failed to add bottom image:", e);
       }
 
+      setPdfDoc(doc);
       const pdfBlob = doc.output("blob");
       const blobUrl = URL.createObjectURL(pdfBlob);
       setPdfUrl(blobUrl);
@@ -366,7 +379,7 @@ const AdminPrintEstimate = () => {
         style={{
           position: "fixed",
           top: "10px",
-          right: "20px",
+          left: "20px",
           zIndex: 9999,
           display: "flex",
           gap: "10px",
@@ -378,12 +391,22 @@ const AdminPrintEstimate = () => {
         >
           Back to List
         </button>
+        {pdfDoc && (
+          <button
+            onClick={() =>
+              pdfDoc.save(`${invoiceId || params?.estimateId || "Estimate"}.pdf`)
+            }
+            className="btn btn-primary shadow-sm"
+          >
+            Download PDF
+          </button>
+        )}
       </div>
 
       {pdfUrl ? (
         <iframe
           src={pdfUrl}
-          title="Estimate PDF"
+          title={invoiceId || params?.estimateId || "Estimate PDF"}
           style={{ width: "100%", height: "100vh", border: "none" }}
         />
       ) : (

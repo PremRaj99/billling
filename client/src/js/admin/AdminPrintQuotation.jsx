@@ -92,9 +92,20 @@ const AdminPrintQuotation = () => {
     return `${mainTitle}\n${bulletedSubs}`;
   };
 
+  const [pdfDoc, setPdfDoc] = useState(null);
+
+  useEffect(() => {
+    if (invoiceId || params?.quotationId) {
+      document.title = invoiceId || params?.quotationId;
+    }
+  }, [invoiceId, params?.quotationId]);
+
   const generatePdf = async () => {
     try {
       const doc = new jsPDF("p", "mm", "a4");
+      const quoTitle = invoiceId || params?.quotationId || "Quotation";
+      doc.setProperties({ title: quoTitle });
+      document.title = quoTitle;
       const pageHeight = doc.internal.pageSize.height;
 
       let currentY = 8;
@@ -277,6 +288,7 @@ const AdminPrintQuotation = () => {
         console.error("Failed to add bottom image:", e);
       }
 
+      setPdfDoc(doc);
       const pdfBlob = doc.output("blob");
       const blobUrl = URL.createObjectURL(pdfBlob);
       setPdfUrl(blobUrl);
@@ -292,7 +304,7 @@ const AdminPrintQuotation = () => {
         style={{
           position: "fixed",
           top: "10px",
-          right: "20px",
+          left: "20px",
           zIndex: 9999,
           display: "flex",
           gap: "10px",
@@ -304,12 +316,22 @@ const AdminPrintQuotation = () => {
         >
           Back to List
         </button>
+        {pdfDoc && (
+          <button
+            onClick={() =>
+              pdfDoc.save(`${invoiceId || params?.quotationId || "Quotation"}.pdf`)
+            }
+            className="btn btn-primary shadow-sm"
+          >
+            Download PDF
+          </button>
+        )}
       </div>
 
       {pdfUrl ? (
         <iframe
           src={pdfUrl}
-          title="Quotation PDF"
+          title={invoiceId || params?.quotationId || "Quotation PDF"}
           style={{ width: "100%", height: "100vh", border: "none" }}
         />
       ) : (
