@@ -230,7 +230,7 @@ const AdminPrintEstimate = () => {
       const totalsRows = [
         { description: "Total Value", amount: formatNumber(calculatedTotal) },
         { description: "Advance Payment", amount: formatNumber(advancePayment) },
-        { description: "Discount", amount: formatNumber(discount) },
+        { description: "Rounding Off", amount: formatNumber(discount) },
         { description: "Balance Payment", amount: formatNumber(balancePayment) },
       ];
 
