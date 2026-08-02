@@ -41,10 +41,12 @@ const AdminPrintQuotation = () => {
   const [invoice, setInvoice] = useState(null);
   const [billingTo, setBillingTo] = useState("");
   const [data, setData] = useState([]);
+  const [hasSignature, setHasSignature] = useState(false);
   const [pdfUrl, setPdfUrl] = useState(null);
 
   const topImageUrl = "/quoo.jpg";
   const bottomImageUrl = "/add.jpg";
+  const signImageUrl = "/artpoint-sign.png";
 
   const getInvoiceById = async () => {
     try {
@@ -57,6 +59,7 @@ const AdminPrintQuotation = () => {
         setBillingTo(qData.billingTo || {});
         setInvoice(qData.invoice || {});
         setInvoiceId(qData.quotationId);
+        setHasSignature(Boolean(qData.hasSignature));
       } else {
         message.error(res.data.message);
       }
@@ -96,11 +99,12 @@ const AdminPrintQuotation = () => {
 
       let currentY = 8;
 
-      // Load images with natural dimensions
+      // Load images
       const topImg = await getImageDetails(topImageUrl);
       const bottomImg = await getImageDetails(bottomImageUrl);
+      const signImg = await getImageDetails(signImageUrl);
 
-      // Header Image
+      // Header Image Banner
       try {
         doc.addImage(topImg.dataUrl, "JPEG", 8, currentY, 195, 60);
       } catch (e) {
@@ -109,71 +113,131 @@ const AdminPrintQuotation = () => {
       currentY += 68;
 
       // Ref and Date
-      doc.setFontSize(10);
+      doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
-      doc.text(`REF: ${invoiceId || ""}`, 14, currentY);
+      doc.setTextColor(0, 0, 0);
+
+      doc.text(`Ref.  ${invoiceId || ""}`, 14, currentY);
+      doc.setLineWidth(0.3);
+      doc.line(24, currentY + 1, 65, currentY + 1);
 
       const formattedDate = invoice?.createdAt
-        ? new Intl.DateTimeFormat("en-IN", {
+        ? new Intl.DateTimeFormat("en-GB", {
             day: "2-digit",
             month: "2-digit",
             year: "numeric",
-          }).format(new Date(invoice.createdAt))
-        : "";
-      doc.text(`Date: ${formattedDate}`, 140, currentY);
-      currentY += 8;
+          }).format(new Date(invoice.createdAt)).replace(/\//g, "-")
+        : new Intl.DateTimeFormat("en-GB", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          }).format(new Date()).replace(/\//g, "-");
 
-      // Billing Details
+      doc.text(`Date  ${formattedDate}`, 140, currentY);
+      doc.line(152, currentY + 1, 190, currentY + 1);
+      currentY += 10;
+
+      // To Section
       doc.setFont("helvetica", "bold");
-      doc.text("To,", 14, currentY);
-      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      doc.text("To,", 16, currentY);
       currentY += 6;
 
       if (billingTo?.name) {
-        doc.text(billingTo.name, 14, currentY);
-        currentY += 6;
+        doc.setFont("helvetica", "bolditalic");
+        doc.setFontSize(11);
+        doc.text(billingTo.name, 22, currentY);
+        currentY += 5;
       }
       if (billingTo?.address) {
-        doc.text(billingTo.address, 14, currentY);
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(10);
+        doc.text(billingTo.address, 22, currentY);
         currentY += 6;
       }
 
+      currentY += 4;
+
       // Table Columns
       const tableColumns = [
-        { title: "Sr No", dataKey: "srNo" },
+        { title: "S. No.", dataKey: "srNo" },
         { title: "Product Details", dataKey: "productDetails" },
         { title: "Rate", dataKey: "rate" },
       ];
 
-      const tableRows = data.map((item, index) => ({
-        srNo: index + 1,
-        productDetails: formatParticularsForPdf(item?.name),
-        rate: formatNumber(item?.price),
-      }));
+      const tableRows = data.map((item, index) => {
+        let rateStr = "-";
+        if (item?.price != null && item?.price !== "") {
+          const formatted = String(formatNumber(item.price)).trim();
+          rateStr = formatted.endsWith("/-") ? formatted : `${formatted}/-`;
+        }
+        return {
+          srNo: index + 1,
+          productDetails: formatParticularsForPdf(item?.name),
+          rate: rateStr,
+        };
+      });
 
       autoTable(doc, {
-        columns: tableColumns,
-        body: tableRows,
-        startY: currentY + 2,
+        head: [["S. No.", "Product Details", "Rate"]],
+        body: tableRows.map((row) => [row.srNo, row.productDetails, row.rate]),
+        startY: currentY,
         theme: "grid",
-        margin: { top: 10, left: 10, right: 10 },
+        showHead: "everyPage",
+        margin: { left: 16, right: 16 },
         styles: {
-          fontSize: 9,
+          fontSize: 9.5,
           cellPadding: 3,
-          textColor: "#000000",
-          fillColor: "#FFFFFF",
+          textColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+          lineWidth: 0.2,
+          lineColor: [0, 0, 0],
           overflow: "linebreak",
         },
         headStyles: {
-          fillColor: "#19a9e6",
-          textColor: "#FFFFFF",
+          fillColor: [25, 169, 230],
+          textColor: [255, 255, 255],
           fontStyle: "bold",
-          fontSize: 9,
+          fontSize: 10,
+          lineWidth: 0.2,
+          lineColor: [0, 0, 0],
+          halign: "center",
+          valign: "middle",
         },
         columnStyles: {
-          0: { cellWidth: 20 },
-          1: { cellWidth: 140 },
-          2: { cellWidth: 30, halign: "right" },
+          0: { cellWidth: 16, halign: "center" },
+          1: { cellWidth: 126, halign: "left" },
+          2: { cellWidth: 36, halign: "center" },
+        },
+        willDrawCell: (data) => {
+          if (data.section === "body" && data.column.index === 1) {
+            data.cell.customTextLines = [...data.cell.text];
+            data.cell.text = [];
+          }
+        },
+        didDrawCell: (data) => {
+          if (
+            data.section === "body" &&
+            data.column.index === 1 &&
+            data.cell.customTextLines &&
+            data.cell.customTextLines.length > 0
+          ) {
+            const lines = data.cell.customTextLines;
+            const x = data.cell.x + data.cell.padding("left");
+            let y = data.cell.y + data.cell.padding("top") + 3.2;
+
+            lines.forEach((line, idx) => {
+              if (idx === 0) {
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(9.5);
+              } else {
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(9);
+              }
+              doc.text(line, x, y);
+              y += 4.2;
+            });
+          }
         },
         didDrawPage: (d) => {
           currentY = d.cursor.y;
@@ -181,28 +245,37 @@ const AdminPrintQuotation = () => {
       });
 
       currentY += 12;
-      if (currentY + 30 > pageHeight) {
-        doc.addPage();
-        currentY = 15;
+
+      // Red Note at Bottom Left
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(200, 0, 0);
+      doc.text("Note:- GST Extra", 16, pageHeight - 24);
+
+      // Signature Stamp at Bottom Right
+      if (hasSignature && signImg && signImg.dataUrl) {
+        try {
+          const signWidth = 36;
+          const signHeight = (signImg.height / signImg.width) * signWidth;
+          doc.addImage(
+            signImg.dataUrl,
+            "PNG",
+            150,
+            pageHeight - 20 - signHeight,
+            signWidth,
+            signHeight
+          );
+        } catch (e) {
+          console.error("Failed to add signature image:", e);
+        }
       }
 
-      doc.setFont("helvetica", "bolditalic");
-      doc.setFontSize(10);
-      doc.setTextColor(220, 53, 69);
-      doc.text("GST Charge Extra", 14, currentY);
-
-      doc.setTextColor(0, 0, 0);
-
-      // Bottom Image and Signature
+      // Footer Banner Image
       try {
         doc.addImage(bottomImg.dataUrl, "JPEG", 8, pageHeight - 16, 195, 10);
       } catch (e) {
         console.error("Failed to add bottom image:", e);
       }
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.text("Authorized Signature", 150, pageHeight - 16);
 
       const pdfBlob = doc.output("blob");
       const blobUrl = URL.createObjectURL(pdfBlob);

@@ -1,17 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
-import AdminLayout from "./components/AdminLayout";
-import axios from "axios";
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
-import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
-import { message } from "antd";
-import { useNavigate, useParams } from "react-router-dom";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
-import "./AdminAddInvoice.css";
-import { formatNumber } from "../components/numberUtils";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { AddBox, AddBoxRounded } from "@mui/icons-material";
+import { message } from "antd";
+import axios from "axios";
+import { useNavigate, useParams } from "react-router-dom";
+import "./AdminAddInvoice.css";
+import AdminLayout from "./components/AdminLayout";
 
 const renderParticulars = (nameStr) => {
   if (!nameStr) return null;
@@ -57,7 +51,44 @@ const AdminEditQuotation = () => {
   const params = useParams();
   const pdfRef = useRef();
   const [previewMode, setPreviewMode] = useState(false);
+  const [showSignature, setShowSignature] = useState(false);
   const [customers, setCustomers] = useState(null);
+
+  const handleToggleSignature = async () => {
+    const newSignatureState = !showSignature;
+    setShowSignature(newSignatureState);
+    if (invoiceId) {
+      try {
+        const cleanedProducts = data.filter(
+          (item) =>
+            (item?.name && String(item.name).trim() !== "") ||
+            (item?.price && String(item.price).trim() !== "")
+        );
+        const invoiceObject = {
+          quotationId: invoiceId,
+          invoice: invoice,
+          billingTo: billingTo,
+          products: cleanedProducts,
+          hasSignature: newSignatureState,
+        };
+        const res = await axios.post(
+          "/api/quotation/update-quotation",
+          invoiceObject
+        );
+        if (res.data.success) {
+          message.success(
+            newSignatureState
+              ? "Signature Added & Saved"
+              : "Signature Removed & Saved"
+          );
+        } else {
+          message.error(res.data.message);
+        }
+      } catch (err) {
+        console.error("Failed to update signature:", err);
+      }
+    }
+  };
   const [products, setProducts] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredUsers, setFilteredUsers] = useState(null);
@@ -161,6 +192,7 @@ const AdminEditQuotation = () => {
         setBillingTo(res.data.data.billingTo);
         setInvoice(res.data.data.invoice);
         setInvoiceId(res.data.data.quotationId);
+        setShowSignature(Boolean(res.data.data.hasSignature));
         const qty = {};
         res.data.data.products.forEach((product, index) => {
           const { quantity } = product;
@@ -296,6 +328,7 @@ const AdminEditQuotation = () => {
         invoice: invoice,
         billingTo: billingTo,
         products: cleanedProducts,
+        hasSignature: showSignature,
       };
       const res = await axios.post(
         "/api/quotation/update-quotation",
@@ -491,7 +524,26 @@ const AdminEditQuotation = () => {
                   <h5 className="text-danger">
                     <i>GST Charge Extra</i>
                   </h5>
-                  <b>Authorized Signature</b>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                    }}
+                  >
+                    {showSignature && (
+                      <img
+                        src="/artpoint-sign.png"
+                        alt="Signature"
+                        style={{
+                          height: "70px",
+                          marginBottom: "-12px",
+                          objectFit: "contain",
+                        }}
+                      />
+                    )}
+                    <b>Authorized Signature</b>
+                  </div>
                 </div>
                 <div className="add-img"></div>
               </div>
@@ -503,7 +555,14 @@ const AdminEditQuotation = () => {
           >
             Back to Editing Mode
           </button>
-          <button onClick={downloadPdf} className="b-btn">
+          <button
+            type="button"
+            className="b-btn me-2 mt-4"
+            onClick={handleToggleSignature}
+          >
+            {showSignature ? "Remove Signature" : "Add Signature"}
+          </button>
+          <button onClick={downloadPdf} className="b-btn mt-4">
             Download PDF
           </button>
         </>
@@ -526,6 +585,13 @@ const AdminEditQuotation = () => {
                 className="b-btn ms-2"
               >
                 Preview Mode
+              </button>
+              <button
+                type="button"
+                className="b-btn ms-2"
+                onClick={handleToggleSignature}
+              >
+                {showSignature ? "Remove Signature" : "Add Signature"}
               </button>
             </div>
           </div>
@@ -718,15 +784,43 @@ const AdminEditQuotation = () => {
                 <b className="text-danger">
                   <i>GST Charge Extra</i>
                 </b>
-                <b>Authorized Signature</b>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
+                >
+                  {showSignature && (
+                    <img
+                      src="/artpoint-sign.png"
+                      alt="Signature"
+                      style={{
+                        height: "70px",
+                        marginBottom: "-12px",
+                        objectFit: "contain",
+                      }}
+                    />
+                  )}
+                  <b>Authorized Signature</b>
+                </div>
               </div>
               <div className="add-img"></div>
             </div>
           </div>
 
-          <button onClick={handleUpdateInvoice} className="mt-3 b-btn py-2">
-            Update Quotation
-          </button>
+          <div className="d-flex gap-2 mt-3">
+            <button onClick={handleUpdateInvoice} className="b-btn py-2">
+              Update Quotation
+            </button>
+            <button
+              type="button"
+              className="b-btn py-2"
+              onClick={handleToggleSignature}
+            >
+              {showSignature ? "Remove Signature" : "Add Signature"}
+            </button>
+          </div>
         </>
       )}
     </AdminLayout>

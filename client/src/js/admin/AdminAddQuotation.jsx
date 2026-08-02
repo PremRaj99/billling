@@ -55,7 +55,12 @@ const AdminAddQuotation = () => {
   const pdfRef = useRef();
 
   const [previewMode, setPreviewMode] = useState(false);
+  const [showSignature, setShowSignature] = useState(false);
   const [products, setProducts] = useState(null);
+
+  const handleToggleSignature = () => {
+    setShowSignature(!showSignature);
+  };
   const [customers, setCustomers] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchName, setSearchName] = useState("");
@@ -305,6 +310,7 @@ const AdminAddQuotation = () => {
         invoice: invoice,
         billingTo: billingTo,
         products: cleanedProducts,
+        hasSignature: showSignature,
       };
       const res = await axios.post(
         "/api/quotation/add-quotation",
@@ -593,7 +599,26 @@ const AdminAddQuotation = () => {
                   <h3 className="text-danger">
                     <i>GST Charge Extra</i>
                   </h3>
-                  <b>Authorized Signature</b>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                    }}
+                  >
+                    {showSignature && (
+                      <img
+                        src="/artpoint-sign.png"
+                        alt="Signature"
+                        style={{
+                          height: "70px",
+                          marginBottom: "-12px",
+                          objectFit: "contain",
+                        }}
+                      />
+                    )}
+                    <b>Authorized Signature</b>
+                  </div>
                 </div>
                 <div className="add-img"></div>
               </div>
@@ -605,7 +630,14 @@ const AdminAddQuotation = () => {
           >
             Back to Editing Mode
           </button>
-          <button onClick={downloadPdf} className="b-btn">
+          <button
+            type="button"
+            className="b-btn me-2 mt-4"
+            onClick={handleToggleSignature}
+          >
+            {showSignature ? "Remove Signature" : "Add Signature"}
+          </button>
+          <button onClick={downloadPdf} className="b-btn mt-4">
             Download PDF
           </button>
         </>
@@ -628,6 +660,13 @@ const AdminAddQuotation = () => {
                 className="b-btn ms-2"
               >
                 Preview Mode
+              </button>
+              <button
+                type="button"
+                className="b-btn ms-2"
+                onClick={handleToggleSignature}
+              >
+                {showSignature ? "Remove Signature" : "Add Signature"}
               </button>
             </div>
           </div>
@@ -831,15 +870,43 @@ const AdminAddQuotation = () => {
                 <h3 className="text-danger">
                   <i>GST Charge Extra</i>
                 </h3>
-                <b>Authorized Signature</b>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
+                >
+                  {showSignature && (
+                    <img
+                      src="/artpoint-sign.png"
+                      alt="Signature"
+                      style={{
+                        height: "70px",
+                        marginBottom: "-12px",
+                        objectFit: "contain",
+                      }}
+                    />
+                  )}
+                  <b>Authorized Signature</b>
+                </div>
               </div>
               <div className="add-img"></div>
             </div>
           </div>
 
-          <button onClick={handleAddEstimate} className="mx-2 b-btn py-2 mt-4">
-            Save Quotation
-          </button>
+          <div className="d-flex gap-2 mt-4 ms-2">
+            <button onClick={handleAddEstimate} className="b-btn py-2">
+              Save Quotation
+            </button>
+            <button
+              type="button"
+              className="b-btn py-2"
+              onClick={handleToggleSignature}
+            >
+              {showSignature ? "Remove Signature" : "Add Signature"}
+            </button>
+          </div>
         </>
       )}
     </AdminLayout>
