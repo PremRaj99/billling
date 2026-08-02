@@ -42,12 +42,10 @@ const createCancelledStamp = () => {
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Dashed border matching 8px dashed rgba(220, 53, 69, 0.4)
   ctx.strokeStyle = "rgba(220, 53, 69, 0.5)";
   ctx.lineWidth = 8;
   ctx.setLineDash([18, 12]);
 
-  // Rounded rectangle
   const x = 12;
   const y = 12;
   const w = canvas.width - 24;
@@ -63,10 +61,8 @@ const createCancelledStamp = () => {
   ctx.closePath();
   ctx.stroke();
 
-  // Reset line dash
   ctx.setLineDash([]);
 
-  // Text matching color: rgba(220, 53, 69, 0.6), letterSpacing
   ctx.font = "900 68px Arial, sans-serif";
   ctx.fillStyle = "rgba(220, 53, 69, 0.6)";
   ctx.textAlign = "center";
@@ -120,7 +116,11 @@ const AdminPrintInvoice = () => {
             ? invoiceData.isCancelled
             : invoiceData.status === "cancelled"
         );
-        setHasSignature(Boolean(invoiceData.hasSignature));
+        const isSig =
+          invoiceData.hasSignature === true ||
+          invoiceData.hasSignature === "true" ||
+          invoiceData.hasSignature === 1;
+        setHasSignature(isSig);
 
         const qty = {};
         (invoiceData.products || []).forEach((product, index) => {
@@ -166,190 +166,260 @@ const AdminPrintInvoice = () => {
       }
       currentY += 68;
 
-      // Billing Details
+      // Billing To Header
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
       doc.text("Billing To:", 14, currentY);
+      currentY += 6;
+
+      // Billing Details Grid (Left & Right)
+      doc.setFontSize(10);
+
+      // Row 1: Name & Invoice No
       doc.setFont("helvetica", "normal");
-      currentY += 6;
+      doc.text("Name:", 14, currentY);
+      doc.setFont("helvetica", "bold");
+      doc.text(billingTo?.name || "", 42, currentY);
 
-      doc.text(`Name:          ${billingTo?.name || ""}`, 14, currentY);
-      doc.text(`Invoice No:     ${invoiceId || ""}`, 140, currentY);
-      currentY += 6;
+      doc.setFont("helvetica", "normal");
+      doc.text("Invoice No:", 135, currentY);
+      doc.setFont("helvetica", "bold");
+      doc.text(invoiceId || "", 160, currentY);
+      currentY += 5.5;
 
-      doc.text(`Address:      ${billingTo?.address || ""}`, 14, currentY);
+      // Row 2: Address & Date
+      doc.setFont("helvetica", "normal");
+      doc.text("Address:", 14, currentY);
+      doc.text(billingTo?.address || "", 42, currentY);
+
       const formattedDate = invoice?.createdAt
-        ? new Intl.DateTimeFormat("en-IN", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-          }).format(new Date(invoice.createdAt))
-        : "";
-      doc.text(`Date:              ${formattedDate}`, 140, currentY);
-      currentY += 6;
+        ? new Intl.DateTimeFormat("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        }).format(new Date(invoice.createdAt))
+        : new Intl.DateTimeFormat("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        }).format(new Date());
 
-      doc.text(`GST:           ${billingTo?.userGst || ""}`, 14, currentY);
-      doc.text(`Mobile:           ${billingTo?.mobile || ""}`, 140, currentY);
-      currentY += 6;
+      doc.text("Date:", 135, currentY);
+      doc.text(formattedDate, 160, currentY);
+      currentY += 5.5;
 
+      // Row 3: GST & Mobile
+      doc.text("GST:", 14, currentY);
+      doc.text(billingTo?.userGst || "", 42, currentY);
+
+      doc.text("Mobile:", 135, currentY);
+      doc.text(billingTo?.mobile || "", 160, currentY);
+      currentY += 5.5;
+
+      // Row 4: Order Date (if present)
       if (billingTo?.orderDate) {
-        const orderDateStr = new Intl.DateTimeFormat("en-IN", {
+        const orderDateStr = new Intl.DateTimeFormat("en-GB", {
           day: "2-digit",
           month: "2-digit",
           year: "numeric",
         }).format(new Date(billingTo.orderDate));
-        doc.text(`Order Date:   ${orderDateStr}`, 140, currentY);
-        currentY += 6;
+        doc.text("Order Date:", 135, currentY);
+        doc.text(orderDateStr, 160, currentY);
+        currentY += 5.5;
       }
 
-      // Table Columns
-      const tableColumns = [
-        { title: "Sr No", dataKey: "srNo" },
-        { title: "Product Details", dataKey: "productDetails" },
-        { title: "HSN Code", dataKey: "hsnCode" },
-        { title: "Size", dataKey: "size" },
-        { title: "Qty", dataKey: "qty" },
-        { title: "Total Sqft", dataKey: "totalSqft" },
-        { title: "Rate", dataKey: "rate" },
-        { title: "Taxable Amount", dataKey: "totalTaxableValue" },
-        { title: "CGST Rate", dataKey: "cgst" },
-        { title: "CGST Amount", dataKey: "CGSTamount" },
-        { title: "SGST Rate", dataKey: "sgst" },
-        { title: "SGST Amount", dataKey: "SGSTamount" },
-      ];
+      currentY += 2.5;
 
+      // Table Rows
       const tableRows = data.map((item, index) => {
         const sqft = item.length * item.breadth * (quantities[index] || 0);
         const taxable = sqft * item?.price;
         const cgstAmt = (taxable * (item?.cgst || 0)) / 100;
         const sgstAmt = (taxable * (item?.sgst || 0)) / 100;
 
-        return {
-          srNo: index + 1,
-          productDetails: item.name || "",
-          hsnCode: item.hsnCode || "",
-          size: `${item.length} x ${item.breadth}`,
-          qty: quantities[index] || 0,
-          totalSqft: formatNumber(sqft),
-          rate: formatNumber(item.price),
-          totalTaxableValue: formatNumber(taxable),
-          cgst: `${item?.cgst || 0}%`,
-          CGSTamount: formatNumber(cgstAmt),
-          sgst: `${item?.sgst || 0}%`,
-          SGSTamount: formatNumber(sgstAmt),
-        };
+        return [
+          index + 1,
+          item.name,
+          item.hsnCode || "",
+          `${item.length || 0} x ${item.breadth || 0}`,
+          quantities[index] || item.quantity || 0,
+          formatNumber(sqft),
+          formatNumber(item.price),
+          formatNumber(taxable),
+          `${item?.cgst || 0}%`,
+          formatNumber(cgstAmt),
+          `${item?.sgst || 0}%`,
+          formatNumber(sgstAmt),
+        ];
       });
 
       autoTable(doc, {
-        columns: tableColumns,
+        head: [
+          [
+            "S. No.",
+            "Product Details",
+            "HSN",
+            "Size",
+            "Qty",
+            "Sqft",
+            "Rate",
+            "Taxable Amt",
+            "CGST %",
+            "CGST Amt",
+            "SGST %",
+            "SGST Amt",
+          ],
+        ],
         body: tableRows,
-        startY: currentY + 2,
+        startY: currentY,
         theme: "grid",
-        margin: { top: 10, left: 10, right: 10 },
+        showHead: "everyPage",
+        margin: { left: 8, right: 8 },
         styles: {
           fontSize: 8,
-          cellPadding: 2,
-          textColor: "#000000",
-          fillColor: "#FFFFFF",
+          cellPadding: { top: 2.5, bottom: 2.5, left: 1.5, right: 1.5 },
+          textColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+          lineWidth: 0.2,
+          lineColor: [220, 220, 220],
+          overflow: "linebreak",
         },
         headStyles: {
-          fillColor: "#19a9e6",
-          textColor: "#FFFFFF",
+          fillColor: [25, 169, 230],
+          textColor: [255, 255, 255],
           fontStyle: "bold",
           fontSize: 8,
+          lineWidth: 0.2,
+          lineColor: [220, 220, 220],
+          halign: "center",
+          valign: "middle",
+          cellPadding: { top: 2.5, bottom: 2.5, left: 1, right: 1 },
+        },
+        columnStyles: {
+          0: { cellWidth: 10, halign: "center" },
+          1: { cellWidth: 46, halign: "left" },
+          2: { cellWidth: 14, halign: "center" },
+          3: { cellWidth: 16, halign: "center" },
+          4: { cellWidth: 10, halign: "center" },
+          5: { cellWidth: 15, halign: "center" },
+          6: { cellWidth: 14, halign: "center" },
+          7: { cellWidth: 18, halign: "center" },
+          8: { cellWidth: 11, halign: "center" },
+          9: { cellWidth: 14, halign: "center" },
+          10: { cellWidth: 11, halign: "center" },
+          11: { cellWidth: 15, halign: "center" },
+        },
+        willDrawCell: (d) => {
+          if (d.section === "body" && d.column.index === 1) {
+            d.cell.customTextLines = [...d.cell.text];
+            d.cell.text = [];
+          }
+        },
+        didDrawCell: (d) => {
+          if (
+            d.section === "body" &&
+            d.column.index === 1 &&
+            d.cell.customTextLines &&
+            d.cell.customTextLines.length > 0
+          ) {
+            const lines = d.cell.customTextLines;
+            const x = d.cell.x + d.cell.padding("left");
+            let y = d.cell.y + d.cell.padding("top") + 2.6;
+
+            lines.forEach((line, idx) => {
+              if (idx === 0) {
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(7.5);
+              } else {
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(7);
+              }
+              doc.text(line, x, y);
+              y += 3.6;
+            });
+          }
         },
         didDrawPage: (d) => {
           currentY = d.cursor.y;
         },
       });
 
-      currentY += 8;
-      if (currentY + 65 > pageHeight) {
+      currentY += 10;
+      if (currentY + 50 > pageHeight) {
         doc.addPage();
         currentY = 15;
       }
 
-      // Terms Header
-      doc.setFillColor("#FF0000");
-      doc.rect(14, currentY - 4, 110, 8, "F");
+      const bottomStartY = currentY;
+
+      // Left Box: Terms & Conditions
+      doc.setFillColor(255, 0, 0);
+      doc.rect(14, bottomStartY, 105, 7, "F");
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
       doc.setTextColor(255, 255, 255);
-      doc.text("Terms & Conditions:", 18, currentY + 1.5);
+      doc.text("Terms & Conditions:", 18, bottomStartY + 4.8);
 
       doc.setTextColor(0, 0, 0);
-      currentY += 8;
-      doc.setFontSize(9);
+      let termsY = bottomStartY + 12;
+      doc.setFontSize(8.5);
       doc.setFont("helvetica", "normal");
-      doc.text("Goods Once Sold will not be taken back or exchanged.", 16, currentY);
-      currentY += 5;
-      doc.text("All disputes subject to HAZARIBAG Jurisdiction only.", 16, currentY);
+      doc.text("Goods Once Sold will not be taken back or exchanged.", 14, termsY);
+      termsY += 5;
+      doc.text("All disputes subject to HAZARIBAG Jurisdiction only.", 14, termsY);
 
-      // Totals Table
-      const totalsColumns = [
-        { title: "Total Summary", dataKey: "description" },
-        { title: "Amount (INR)", dataKey: "amount" },
-      ];
-
+      // Right Box: Summary Table (Amount)
       const totalsRows = [
-        { description: "Taxable Amount", amount: formatNumber(totalTaxableValue) },
-        { description: "Total CGST", amount: formatNumber(totalCGST) },
-        { description: "Total SGST", amount: formatNumber(totalSGST) },
-        { description: "Grand Total", amount: formatNumber(grandTotal) },
+        ["Taxable Amount", formatNumber(totalTaxableValue)],
+        ["Total CGST", formatNumber(totalCGST)],
+        ["Total SGST", formatNumber(totalSGST)],
+        ["Grand Total", formatNumber(grandTotal)],
       ];
 
       autoTable(doc, {
-        columns: totalsColumns,
+        head: [["Amount", ""]],
         body: totalsRows,
-        startY: currentY - 17,
+        startY: bottomStartY,
         theme: "grid",
-        margin: { left: 135, right: 10 },
+        margin: { left: 126, right: 14 },
         styles: {
           fontSize: 9,
-          cellPadding: 2,
-          textColor: "#000000",
-          fillColor: "#FFFFFF",
+          cellPadding: 2.5,
+          textColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+          lineWidth: 0.2,
+          lineColor: [220, 220, 220],
         },
         headStyles: {
-          fillColor: "#19a9e6",
-          textColor: "#FFFFFF",
+          fillColor: [25, 169, 230],
+          textColor: [255, 255, 255],
           fontStyle: "bold",
+          fontSize: 9.5,
+          halign: "left",
         },
-        tableWidth: "wrap",
+        columnStyles: {
+          0: { cellWidth: 38, halign: "left", fontStyle: "normal" },
+          1: { cellWidth: 28, halign: "right", fontStyle: "normal" },
+        },
       });
 
-      currentY += 8;
-
-      // Account Details Header
-      doc.setFillColor("#FF0000");
-      doc.rect(14, currentY - 4, 110, 8, "F");
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.setTextColor(255, 255, 255);
-      doc.text("Account Details:", 18, currentY + 1.5);
-
-      doc.setTextColor(0, 0, 0);
-      currentY += 8;
-      doc.setFontSize(9);
+      // Signature & Footer Image
       doc.setFont("helvetica", "normal");
-      doc.text("Bank of India", 16, currentY);
-      currentY += 5;
-      doc.text("A/C No: 469920110000164", 16, currentY);
-      currentY += 5;
-      doc.text("IFSC Code: BKID0004699", 16, currentY);
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 0);
+      doc.text("Authorized Signature", 145, pageHeight - 22);
 
-      // Signature & Footer Image (Preserving natural aspect ratio for signature)
       if (hasSignature && signImg && signImg.dataUrl) {
         try {
-          const signWidth = 38;
+          const signWidth = 36;
           const signHeight = (signImg.height / signImg.width) * signWidth;
           doc.addImage(
             signImg.dataUrl,
             "PNG",
-            152,
-            pageHeight - 20 - signHeight,
+            145,
+            pageHeight - 24 - signHeight,
             signWidth,
             signHeight
           );
@@ -363,10 +433,6 @@ const AdminPrintInvoice = () => {
       } catch (e) {
         console.error("Failed to add bottom image:", e);
       }
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.text("Authorized Signature", 150, pageHeight - 16);
 
       // Cancelled stamp watermark overlay if applicable
       if (isCancelled || status === "cancelled") {

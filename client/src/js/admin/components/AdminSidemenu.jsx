@@ -111,7 +111,7 @@ const AdminSidemenu = ({ menu, setMenu }) => {
         <li
           className={`${isActive("/admin-staff-monthly-report") ? "active" : ""}`}
         >
-          <Link to="/admin-staff-monthly-report">
+          <Link to="/admin-staff-monthly-report" target="_blank">
             <AssessmentIcon className="me-2" />
             Monthly Report
           </Link>

@@ -123,15 +123,15 @@ const AdminPrintQuotation = () => {
 
       const formattedDate = invoice?.createdAt
         ? new Intl.DateTimeFormat("en-GB", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-          }).format(new Date(invoice.createdAt)).replace(/\//g, "-")
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        }).format(new Date(invoice.createdAt)).replace(/\//g, "-")
         : new Intl.DateTimeFormat("en-GB", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-          }).format(new Date()).replace(/\//g, "-");
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        }).format(new Date()).replace(/\//g, "-");
 
       doc.text(`Date  ${formattedDate}`, 140, currentY);
       doc.line(152, currentY + 1, 190, currentY + 1);

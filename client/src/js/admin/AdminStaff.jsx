@@ -130,7 +130,7 @@ const AdminStaff = () => {
                       <VisibilityIcon
                         style={{ cursor: "pointer" }}
                         onClick={() =>
-                          navigate(`/admin-staff-detail/${s?._id}`)
+                          window.open(`/admin-staff-detail/${s?._id}`, "_blank")
                         }
                         className="text-primary"
                       />

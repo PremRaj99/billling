@@ -67,7 +67,11 @@ const AdminPrintEstimate = () => {
         setAdvancePayment(estData.advancePayment || 0);
         setDiscount(estData.discount || 0);
         setBalancePayment(estData.balancePayment || 0);
-        setHasSignature(Boolean(estData.hasSignature));
+        const isSig =
+          estData.hasSignature === true ||
+          estData.hasSignature === "true" ||
+          estData.hasSignature === 1;
+        setHasSignature(isSig);
 
         const qty = {};
         (estData.products || []).forEach((product, index) => {
@@ -113,33 +117,56 @@ const AdminPrintEstimate = () => {
       }
       currentY += 68;
 
-      // Billing Details
+      // Billing To Header
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
       doc.text("Billing To:", 14, currentY);
+      currentY += 6;
+
+      // Billing Details Grid (Left & Right)
+      doc.setFontSize(10);
+
+      // Row 1: Name & Invoice No
       doc.setFont("helvetica", "normal");
-      currentY += 6;
+      doc.text("Name:", 14, currentY);
+      doc.setFont("helvetica", "bold");
+      doc.text(billingTo?.name || "", 42, currentY);
 
-      doc.text(`Name:          ${billingTo?.name || ""}`, 14, currentY);
-      doc.text(`Estimate No:  ${invoiceId || ""}`, 140, currentY);
-      currentY += 6;
+      doc.setFont("helvetica", "normal");
+      doc.text("Invoice No:", 135, currentY);
+      doc.setFont("helvetica", "bold");
+      doc.text(invoiceId || "", 160, currentY);
+      currentY += 5.5;
 
-      doc.text(`Address:      ${billingTo?.address || ""}`, 14, currentY);
+      // Row 2: Address & Date
+      doc.setFont("helvetica", "normal");
+      doc.text("Address:", 14, currentY);
+      doc.text(billingTo?.address || "", 42, currentY);
+
       const formattedDate = invoice?.createdAt
-        ? new Intl.DateTimeFormat("en-IN", {
+        ? new Intl.DateTimeFormat("en-GB", {
           day: "2-digit",
           month: "2-digit",
           year: "numeric",
         }).format(new Date(invoice.createdAt))
-        : "";
-      doc.text(`Date:              ${formattedDate}`, 140, currentY);
-      currentY += 6;
+        : new Intl.DateTimeFormat("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        }).format(new Date());
 
-      if (billingTo?.matterName) {
-        doc.text(`Matter Name: ${billingTo.matterName}`, 14, currentY);
-      }
-      doc.text(`Mobile:           ${billingTo?.mobile || ""}`, 140, currentY);
-      currentY += 6;
+      doc.text("Date:", 135, currentY);
+      doc.text(formattedDate, 160, currentY);
+      currentY += 5.5;
+
+      // Row 3: Matter Name & Mobile
+      doc.text("Matter Name:", 14, currentY);
+      doc.text(billingTo?.matterName || "", 42, currentY);
+
+      doc.text("Mobile:", 135, currentY);
+      doc.text(billingTo?.mobile || "", 160, currentY);
+      currentY += 8;
 
       // Calculate total taxable value
       let calculatedTotal = 0;
@@ -149,142 +176,167 @@ const AdminPrintEstimate = () => {
       });
       setTotalTaxableValue(calculatedTotal);
 
-      // Table Columns
-      const tableColumns = [
-        { title: "Sr No", dataKey: "srNo" },
-        { title: "Product Details", dataKey: "productDetails" },
-        { title: "Size", dataKey: "size" },
-        { title: "Qty", dataKey: "qty" },
-        { title: "Total Sqft", dataKey: "totalSqft" },
-        { title: "Rate", dataKey: "rate" },
-        { title: "Total Value", dataKey: "totalValue" },
-      ];
-
+      // Main Table
       const tableRows = data.map((item, index) => {
         const sqft = item.length * item.breadth * (quantities[index] || 0);
         const itemTotal = sqft * item.price;
 
-        return {
-          srNo: index + 1,
-          productDetails: item.name || "",
-          size: `${item.length} x ${item.breadth}`,
-          qty: quantities[index] || 0,
-          totalSqft: formatNumber(sqft),
-          rate: formatNumber(item.price),
-          totalValue: formatNumber(itemTotal),
-        };
+        return [
+          index + 1,
+          item?.name,
+          `${item.length || 0} x ${item.breadth || 0}`,
+          quantities[index] || item.quantity || 0,
+          formatNumber(sqft),
+          formatNumber(item.price),
+          formatNumber(itemTotal),
+        ];
       });
 
       autoTable(doc, {
-        columns: tableColumns,
+        head: [["S. No.", "Product Details", "Size", "Qty", "Total Sqft", "Rate", "Total Value"]],
         body: tableRows,
-        startY: currentY + 2,
+        startY: currentY,
         theme: "grid",
-        margin: { top: 10, left: 10, right: 10 },
+        showHead: "everyPage",
+        margin: { left: 14, right: 14 },
         styles: {
-          fontSize: 8.5,
-          cellPadding: 2.5,
-          textColor: "#000000",
-          fillColor: "#FFFFFF",
+          fontSize: 9,
+          cellPadding: 3,
+          textColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+          lineWidth: 0.2,
+          lineColor: [220, 220, 220],
+          overflow: "linebreak",
         },
         headStyles: {
-          fillColor: "#19a9e6",
-          textColor: "#FFFFFF",
+          fillColor: [25, 169, 230],
+          textColor: [255, 255, 255],
           fontStyle: "bold",
-          fontSize: 9,
+          fontSize: 9.5,
+          lineWidth: 0.2,
+          lineColor: [220, 220, 220],
+          halign: "center",
+          valign: "middle",
+        },
+        columnStyles: {
+          0: { cellWidth: 12, halign: "center" },
+          1: { cellWidth: 74, halign: "left" },
+          2: { cellWidth: 20, halign: "center" },
+          3: { cellWidth: 14, halign: "center" },
+          4: { cellWidth: 20, halign: "center" },
+          5: { cellWidth: 18, halign: "center" },
+          6: { cellWidth: 20, halign: "center" },
+        },
+        willDrawCell: (d) => {
+          if (d.section === "body" && d.column.index === 1) {
+            d.cell.customTextLines = [...d.cell.text];
+            d.cell.text = [];
+          }
+        },
+        didDrawCell: (d) => {
+          if (
+            d.section === "body" &&
+            d.column.index === 1 &&
+            d.cell.customTextLines &&
+            d.cell.customTextLines.length > 0
+          ) {
+            const lines = d.cell.customTextLines;
+            const x = d.cell.x + d.cell.padding("left");
+            let y = d.cell.y + d.cell.padding("top") + 3.2;
+
+            lines.forEach((line, idx) => {
+              if (idx === 0) {
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(9);
+              } else {
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(8.5);
+              }
+              doc.text(line, x, y);
+              y += 4;
+            });
+          }
         },
         didDrawPage: (d) => {
           currentY = d.cursor.y;
         },
       });
 
-      currentY += 8;
-      if (currentY + 65 > pageHeight) {
+      currentY += 10;
+      if (currentY + 50 > pageHeight) {
         doc.addPage();
         currentY = 15;
       }
 
-      // Terms Header
-      doc.setFillColor("#FF0000");
-      doc.rect(14, currentY - 4, 110, 8, "F");
+      const bottomStartY = currentY;
+
+      // Left Box: Terms & Conditions
+      doc.setFillColor(255, 0, 0);
+      doc.rect(14, bottomStartY, 105, 7, "F");
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
       doc.setTextColor(255, 255, 255);
-      doc.text("Terms & Conditions:", 18, currentY + 1.5);
+      doc.text("Terms & Conditions:", 18, bottomStartY + 4.8);
 
       doc.setTextColor(0, 0, 0);
-      currentY += 8;
-      doc.setFontSize(9);
+      let termsY = bottomStartY + 12;
+      doc.setFontSize(8.5);
       doc.setFont("helvetica", "normal");
-      doc.text("Goods Once Sold will not be taken back or exchanged.", 16, currentY);
-      currentY += 5;
-      doc.text("All disputes subject to HAZARIBAG Jurisdiction only.", 16, currentY);
+      doc.text("Goods Once Sold will not be taken back or exchanged.", 14, termsY);
+      termsY += 5;
+      doc.text("All disputes subject to HAZARIBAG Jurisdiction only.", 14, termsY);
 
-      // Totals Table
-      const totalsColumns = [
-        { title: "Total Summary", dataKey: "description" },
-        { title: "Amount (INR)", dataKey: "amount" },
-      ];
-
+      // Right Box: Summary Table (Amount)
       const totalsRows = [
-        { description: "Total Value", amount: formatNumber(calculatedTotal) },
-        { description: "Advance Payment", amount: formatNumber(advancePayment) },
-        { description: "Rounding Off", amount: formatNumber(discount) },
-        { description: "Balance Payment", amount: formatNumber(balancePayment) },
+        ["Total Value", formatNumber(calculatedTotal)],
+        ["Advance Payment", formatNumber(advancePayment)],
+        ["Rounding Off", formatNumber(discount)],
+        ["Balance Payment", formatNumber(balancePayment)],
       ];
 
       autoTable(doc, {
-        columns: totalsColumns,
+        head: [["Amount", ""]],
         body: totalsRows,
-        startY: currentY - 17,
+        startY: bottomStartY,
         theme: "grid",
-        margin: { left: 135, right: 10 },
+        margin: { left: 126, right: 14 },
         styles: {
           fontSize: 9,
-          cellPadding: 2,
-          textColor: "#000000",
-          fillColor: "#FFFFFF",
+          cellPadding: 2.5,
+          textColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+          lineWidth: 0.2,
+          lineColor: [220, 220, 220],
         },
         headStyles: {
-          fillColor: "#19a9e6",
-          textColor: "#FFFFFF",
+          fillColor: [25, 169, 230],
+          textColor: [255, 255, 255],
           fontStyle: "bold",
+          fontSize: 9.5,
+          halign: "left",
         },
-        tableWidth: "wrap",
+        columnStyles: {
+          0: { cellWidth: 38, halign: "left", fontStyle: "normal" },
+          1: { cellWidth: 28, halign: "right", fontStyle: "normal" },
+        },
       });
 
-      currentY += 8;
-
-      // Account Details Header
-      doc.setFillColor("#FF0000");
-      doc.rect(14, currentY - 4, 110, 8, "F");
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.setTextColor(255, 255, 255);
-      doc.text("Account Details:", 18, currentY + 1.5);
-
-      doc.setTextColor(0, 0, 0);
-      currentY += 8;
-      doc.setFontSize(9);
+      // Signature & Footer Image
       doc.setFont("helvetica", "normal");
-      doc.text("Bank of India", 16, currentY);
-      currentY += 5;
-      doc.text("A/C No: 469920110000164", 16, currentY);
-      currentY += 5;
-      doc.text("IFSC Code: BKID0004699", 16, currentY);
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 0);
+      doc.text("Authorized Signature", 145, pageHeight - 22);
 
-      // Signature & Footer Image (Preserving natural aspect ratio for signature)
       if (hasSignature && signImg && signImg.dataUrl) {
         try {
-          const signWidth = 38;
+          const signWidth = 36;
           const signHeight = (signImg.height / signImg.width) * signWidth;
           doc.addImage(
             signImg.dataUrl,
             "PNG",
-            152,
-            pageHeight - 20 - signHeight,
+            145,
+            pageHeight - 24 - signHeight,
             signWidth,
             signHeight
           );
@@ -298,10 +350,6 @@ const AdminPrintEstimate = () => {
       } catch (e) {
         console.error("Failed to add bottom image:", e);
       }
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.text("Authorized Signature", 150, pageHeight - 16);
 
       const pdfBlob = doc.output("blob");
       const blobUrl = URL.createObjectURL(pdfBlob);

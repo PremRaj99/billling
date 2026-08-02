@@ -135,14 +135,15 @@ const AdminStaffDetail = () => {
       // Document Title & Details
       doc.setFontSize(13);
       doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
       doc.text("STAFF ATTENDANCE & PAYMENT REPORT", 14, currentY);
       currentY += 8;
 
-      doc.setFontSize(10);
+      doc.setFontSize(9.5);
       doc.setFont("helvetica", "bold");
       doc.text(`Staff Name:   ${staff?.name || ""}`, 14, currentY);
       doc.text(`Month & Year: ${monthName} ${selectedYear}`, 130, currentY);
-      currentY += 6;
+      currentY += 5.5;
 
       doc.setFont("helvetica", "normal");
       doc.text(`Mobile:         ${staff?.mobile || "-"}`, 14, currentY);
@@ -150,18 +151,16 @@ const AdminStaffDetail = () => {
         (a) => a.inTime || a.outTime
       ).length;
       doc.text(`Present Days: ${totalPresent} / ${daysInMonth}`, 130, currentY);
+      currentY += 5.5;
+
+      const totalLoansAmount = loans.reduce(
+        (acc, curr) => acc + (curr.amount || 0),
+        0
+      );
+      doc.text(`Total Payments: Rs. ${totalLoansAmount}`, 130, currentY);
       currentY += 8;
 
-      // Table Columns
-      const tableColumns = [
-        { title: "Date", dataKey: "date" },
-        { title: "Day", dataKey: "day" },
-        { title: "In Time", dataKey: "inTime" },
-        { title: "Out Time", dataKey: "outTime" },
-        { title: "Payment Amount", dataKey: "paymentAmount" },
-        { title: "Remark", dataKey: "remark" },
-      ];
-
+      // Table Setup
       const tableRows = monthDays.map((day) => {
         const record = attendance.find((a) => a.date === day);
         const dayLoans = loans.filter((l) => l.date === day);
@@ -173,37 +172,116 @@ const AdminStaffDetail = () => {
           dayLoans.length > 0
             ? dayLoans.map((l) => l.remark).filter(Boolean).join(", ") || "-"
             : "-";
-        const dayName = new Date(day).toLocaleString("default", {
+        const dayDate = new Date(day);
+        const dayName = dayDate.toLocaleString("default", {
           weekday: "short",
         });
 
-        return {
-          date: day,
-          day: dayName,
-          inTime: record?.inTime || "-",
-          outTime: record?.outTime || "-",
-          paymentAmount: loanAmountStr,
-          remark: loanRemarkStr,
-        };
+        const formattedDayDate = new Intl.DateTimeFormat("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }).format(dayDate);
+
+        return [
+          formattedDayDate,
+          dayName,
+          record?.inTime || "-",
+          record?.outTime || "-",
+          loanAmountStr,
+          loanRemarkStr,
+        ];
       });
 
       autoTable(doc, {
-        columns: tableColumns,
+        head: [
+          ["Date", "Day", "In Time", "Out Time", "Payment Amount", "Remark"],
+        ],
         body: tableRows,
-        startY: currentY + 2,
+        startY: currentY,
         theme: "grid",
-        margin: { top: 10, left: 10, right: 10 },
+        showHead: "everyPage",
+        margin: { left: 14, right: 14 },
         styles: {
           fontSize: 8.5,
-          cellPadding: 2,
-          textColor: "#000000",
-          fillColor: "#FFFFFF",
+          cellPadding: { top: 2.5, bottom: 2.5, left: 2, right: 2 },
+          textColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+          lineWidth: 0.2,
+          lineColor: [220, 220, 220],
+          overflow: "linebreak",
         },
         headStyles: {
-          fillColor: "#19a9e6",
-          textColor: "#FFFFFF",
+          fillColor: [25, 169, 230],
+          textColor: [255, 255, 255],
           fontStyle: "bold",
           fontSize: 9,
+          lineWidth: 0.2,
+          lineColor: [220, 220, 220],
+          halign: "center",
+          valign: "middle",
+        },
+        columnStyles: {
+          0: { cellWidth: 28, halign: "center" },
+          1: { cellWidth: 20, halign: "center" },
+          2: { cellWidth: 24, halign: "center" },
+          3: { cellWidth: 24, halign: "center" },
+          4: { cellWidth: 32, halign: "center" },
+          5: { cellWidth: 54, halign: "left" },
+        },
+        didDrawCell: (d) => {
+          if (d.section === "body") {
+            const dayName = d.row.cells[1].text[0];
+            const inTime = d.row.cells[2].text[0];
+
+            if (dayName === "Fri") {
+              if (d.column.index === 1) {
+                doc.setFillColor(255, 243, 205);
+                doc.rect(d.cell.x, d.cell.y, d.cell.width, d.cell.height, "F");
+                doc.setDrawColor(220, 220, 220);
+                doc.rect(d.cell.x, d.cell.y, d.cell.width, d.cell.height, "S");
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(8.5);
+                doc.setTextColor(133, 100, 4);
+                doc.text(
+                  "Fri",
+                  d.cell.x + d.cell.width / 2,
+                  d.cell.y + d.cell.height / 2 + 1,
+                  { align: "center" }
+                );
+              }
+            } else if (d.column.index === 2 || d.column.index === 3) {
+              if (inTime && inTime !== "-") {
+                doc.setFillColor(212, 237, 218);
+                doc.rect(d.cell.x, d.cell.y, d.cell.width, d.cell.height, "F");
+                doc.setDrawColor(220, 220, 220);
+                doc.rect(d.cell.x, d.cell.y, d.cell.width, d.cell.height, "S");
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(8.5);
+                doc.setTextColor(21, 87, 36);
+                doc.text(
+                  d.cell.text[0] || "-",
+                  d.cell.x + d.cell.width / 2,
+                  d.cell.y + d.cell.height / 2 + 1,
+                  { align: "center" }
+                );
+              } else {
+                doc.setFillColor(255, 235, 235);
+                doc.rect(d.cell.x, d.cell.y, d.cell.width, d.cell.height, "F");
+                doc.setDrawColor(220, 220, 220);
+                doc.rect(d.cell.x, d.cell.y, d.cell.width, d.cell.height, "S");
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(8.5);
+                doc.setTextColor(220, 53, 69);
+                doc.text(
+                  "-",
+                  d.cell.x + d.cell.width / 2,
+                  d.cell.y + d.cell.height / 2 + 1,
+                  { align: "center" }
+                );
+              }
+            }
+          }
         },
         didDrawPage: (d) => {
           currentY = d.cursor.y;
