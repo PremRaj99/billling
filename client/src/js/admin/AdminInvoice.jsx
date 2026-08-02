@@ -331,15 +331,31 @@ const AdminInvoice = () => {
                       <small>{formatNumber(item?.grandTotal)}</small>
                     </td>
                     <td>
-                      <small>
-                        {item?.isCancelled || item?.status === "cancelled" ? (
-                          <span className="badge bg-danger text-white">
-                            Cancelled ({item?.status})
-                          </span>
-                        ) : (
-                          item?.status
-                        )}
-                      </small>
+                      {item?.isCancelled || item?.status === "cancelled" ? (
+                        <span className="badge bg-danger text-white">
+                          Cancelled ({item?.status})
+                        </span>
+                      ) : (
+                        <small
+                          style={{
+                            color:
+                              item?.status?.toLowerCase() === "paid"
+                                ? "#198754"
+                                : "#6c757d",
+                            backgroundColor:
+                              item?.status?.toLowerCase() === "paid"
+                                ? "#d1e7dd"
+                                : "#e2e3e5",
+                            padding: "2px 8px",
+                            borderRadius: "4px",
+                            fontWeight: "600",
+                            textTransform: "capitalize",
+                            display: "inline-block",
+                          }}
+                        >
+                          {item?.status}
+                        </small>
+                      )}
                     </td>
                     <td>
                       <small>

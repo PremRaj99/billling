@@ -461,7 +461,25 @@ const AdminEstimate = () => {
                       <small>{formatNumber(item?.balancePayment)}</small>
                     </td>
                     <td>
-                      <small>{item?.status}</small>
+                      <small
+                        style={{
+                          color:
+                            item?.status?.toLowerCase() === "paid"
+                              ? "#198754"
+                              : "#6c757d",
+                          backgroundColor:
+                            item?.status?.toLowerCase() === "paid"
+                              ? "#d1e7dd"
+                              : "#e2e3e5",
+                          padding: "2px 8px",
+                          borderRadius: "4px",
+                          fontWeight: "600",
+                          textTransform: "capitalize",
+                          display: "inline-block",
+                        }}
+                      >
+                        {item?.status}
+                      </small>
                     </td>
                     <td>
                       <small>
