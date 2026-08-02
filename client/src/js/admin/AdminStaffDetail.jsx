@@ -177,263 +177,105 @@ const AdminStaffDetail = () => {
               <div>
                 <strong>Mobile:</strong> {staff.mobile}
               </div>
-              <div>
-                <strong>Aadhar:</strong> {staff.aadharNo}
-              </div>
-              <div>
-                <strong>Bank:</strong> {staff.bankName}
-              </div>
-              <div>
-                <strong>Account:</strong> {staff.accountNo}
-              </div>
-              <div>
-                <strong>IFSC:</strong> {staff.ifscCode}
-              </div>
-              <div>
-                <strong>UPI:</strong> {staff.upiId}
-              </div>
-              <div>
-                <strong>Address:</strong> {staff.address}
-              </div>
             </div>
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="d-flex gap-2 mb-3">
-          <button
-            className={`b-btn py-2 ${activeTab !== "attendance" ? "bb-btn" : ""}`}
-            onClick={() => setActiveTab("attendance")}
-          >
-            Attendance
-          </button>
-          <button
-            className={`b-btn py-2 ${activeTab !== "loans" ? "bb-btn" : ""}`}
-            onClick={() => setActiveTab("loans")}
-          >
-            Loans / Finance
-          </button>
-        </div>
+        <div>
 
-        {/* Attendance Tab */}
-        {activeTab === "attendance" && (
-          <div>
-            {/* Mark Attendance Form */}
-            <div
-              style={{
-                background: "#f8f9fa",
-                padding: "15px",
-                borderRadius: "8px",
-                marginBottom: "20px",
-              }}
+          {/* Month/Year Filter */}
+          <div className="d-flex gap-3 mb-3 align-items-center">
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+              className="form-control"
+              style={{ maxWidth: "150px" }}
             >
-              <h6>Mark Attendance</h6>
-              <div className="d-flex flex-wrap gap-3 align-items-end">
-                <div className="form-fields">
-                  <label>Date</label>
-                  <input
-                    type="date"
-                    value={attDate}
-                    onChange={(e) => setAttDate(e.target.value)}
-                    className="form-control"
-                  />
-                </div>
-                <div className="form-fields">
-                  <label>In Time</label>
-                  <input
-                    type="time"
-                    value={inTime}
-                    onChange={(e) => setInTime(e.target.value)}
-                    className="form-control"
-                  />
-                </div>
-                <div className="form-fields">
-                  <label>Out Time</label>
-                  <input
-                    type="time"
-                    value={outTime}
-                    onChange={(e) => setOutTime(e.target.value)}
-                    className="form-control"
-                  />
-                </div>
-                <button className="b-btn py-2" onClick={handleMarkAttendance}>
-                  Save
-                </button>
-              </div>
-            </div>
-
-            {/* Month/Year Filter */}
-            <div className="d-flex gap-3 mb-3 align-items-center">
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                className="form-control"
-                style={{ maxWidth: "150px" }}
-              >
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <option key={i} value={i}>
-                    {new Date(null, i).toLocaleString("default", {
-                      month: "long",
-                    })}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="number"
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                className="form-control"
-                style={{ maxWidth: "100px" }}
-              />
-              <small>
-                <strong>Present Days: {totalPresent}</strong> /{" "}
-                {daysInMonth}
-              </small>
-            </div>
-
-            {/* Attendance Table */}
-            <table className="table user-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Day</th>
-                  <th>In Time</th>
-                  <th>Out Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {monthDays.map((day, index) => {
-                  const record = attendance.find((a) => a.date === day);
-                  const dayName = new Date(day).toLocaleString("default", {
-                    weekday: "short",
-                  });
-                  const isFriday = new Date(day).getDay() === 5;
-                  return (
-                    <tr
-                      key={index}
-                      style={{
-                        backgroundColor: isFriday
-                          ? "#fff3cd"
-                          : record?.inTime
-                            ? "#d4edda"
-                            : "transparent",
-                      }}
-                    >
-                      <td>
-                        <small>{day}</small>
-                      </td>
-                      <td>
-                        <small>{dayName}</small>
-                      </td>
-                      <td>
-                        <small>{record?.inTime || "-"}</small>
-                      </td>
-                      <td>
-                        <small>{record?.outTime || "-"}</small>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+              {Array.from({ length: 12 }).map((_, i) => (
+                <option key={i} value={i}>
+                  {new Date(null, i).toLocaleString("default", {
+                    month: "long",
+                  })}
+                </option>
+              ))}
+            </select>
+            <input
+              type="number"
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              className="form-control"
+              style={{ maxWidth: "100px" }}
+            />
+            <small>
+              <strong>Present Days: {totalPresent}</strong> /{" "}
+              {daysInMonth}
+            </small>
           </div>
-        )}
 
-        {/* Loans Tab */}
-        {activeTab === "loans" && (
-          <div>
-            {/* Add Loan Form */}
-            <div
-              style={{
-                background: "#f8f9fa",
-                padding: "15px",
-                borderRadius: "8px",
-                marginBottom: "20px",
-              }}
-            >
-              <h6>Add Loan / Finance Entry</h6>
-              <div className="d-flex flex-wrap gap-3 align-items-end">
-                <div className="form-fields">
-                  <label>Amount</label>
-                  <input
-                    type="number"
-                    value={loanAmount}
-                    onChange={(e) => setLoanAmount(e.target.value)}
-                    className="form-control"
-                    placeholder="Enter amount"
-                  />
-                </div>
-                <div className="form-fields">
-                  <label>Date</label>
-                  <input
-                    type="date"
-                    value={loanDate}
-                    onChange={(e) => setLoanDate(e.target.value)}
-                    className="form-control"
-                  />
-                </div>
-                <div className="form-fields">
-                  <label>Remark / Reason</label>
-                  <input
-                    type="text"
-                    value={loanRemark}
-                    onChange={(e) => setLoanRemark(e.target.value)}
-                    className="form-control"
-                    placeholder="Enter remark"
-                  />
-                </div>
-                <button className="b-btn py-2" onClick={handleAddLoan}>
-                  Add
-                </button>
-              </div>
-            </div>
+          {/* Attendance Table */}
+          <table className="table user-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Day</th>
+                <th>In Time</th>
+                <th>Out Time</th>
+                <th>Payment Amount</th>
+                <th>Remark</th>
+              </tr>
+            </thead>
+            <tbody>
+              {monthDays.map((day, index) => {
+                const record = attendance.find((a) => a.date === day);
+                const dayLoans = loans.filter((l) => l.date === day);
+                const loanAmountStr =
+                  dayLoans.length > 0
+                    ? dayLoans.map((l) => `₹${l.amount}`).join(", ")
+                    : "-";
+                const loanRemarkStr =
+                  dayLoans.length > 0
+                    ? dayLoans.map((l) => l.remark).filter(Boolean).join(", ") || "-"
+                    : "-";
 
-            {/* Summary */}
-            <div className="mb-3">
-              <strong>Total Loan Amount: ₹{totalLoan.toLocaleString()}</strong>
-            </div>
-
-            {/* Loans Table */}
-            <table className="table user-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Amount</th>
-                  <th>Remark</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loans?.map((loan, index) => (
-                  <tr key={index}>
+                const dayName = new Date(day).toLocaleString("default", {
+                  weekday: "short",
+                });
+                const isFriday = new Date(day).getDay() === 5;
+                return (
+                  <tr
+                    key={index}
+                    style={{
+                      backgroundColor: isFriday
+                        ? "#fff3cd"
+                        : record?.inTime
+                          ? "#d4edda"
+                          : "transparent",
+                    }}
+                  >
                     <td>
-                      <small>
-                        {new Date(loan.date).toLocaleDateString("en-IN", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        })}
-                      </small>
+                      <small>{day}</small>
                     </td>
                     <td>
-                      <small>₹{loan.amount?.toLocaleString()}</small>
+                      <small>{dayName}</small>
                     </td>
                     <td>
-                      <small>{loan.remark || "-"}</small>
+                      <small>{record?.inTime || "-"}</small>
                     </td>
                     <td>
-                      <DeleteIcon
-                        style={{ cursor: "pointer" }}
-                        onClick={() => handleDeleteLoan(loan._id)}
-                        className="text-danger"
-                      />
+                      <small>{record?.outTime || "-"}</small>
+                    </td>
+                    <td>
+                      <small>{loanAmountStr}</small>
+                    </td>
+                    <td>
+                      <small>{loanRemarkStr}</small>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </AdminLayout>
   );
