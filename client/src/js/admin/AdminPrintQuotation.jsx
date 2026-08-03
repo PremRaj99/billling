@@ -125,12 +125,10 @@ const AdminPrintQuotation = () => {
 
       // Ref and Date
       doc.setFontSize(11);
-      doc.setFont("helvetica", "bold");
       doc.setTextColor(0, 0, 0);
 
       doc.text(`Ref.  ${invoiceId || ""}`, 14, currentY);
       doc.setLineWidth(0.3);
-      doc.line(24, currentY + 1, 65, currentY + 1);
 
       const formattedDate = invoice?.createdAt
         ? new Intl.DateTimeFormat("en-GB", {
@@ -144,30 +142,26 @@ const AdminPrintQuotation = () => {
           year: "numeric",
         }).format(new Date()).replace(/\//g, "-");
 
-      doc.text(`Date  ${formattedDate}`, 140, currentY);
-      doc.line(152, currentY + 1, 190, currentY + 1);
+      doc.text(`Date  ${formattedDate}`, 164, currentY);
       currentY += 10;
 
       // To Section
-      doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.text("To,", 16, currentY);
       currentY += 6;
 
       if (billingTo?.name) {
-        doc.setFont("helvetica", "bolditalic");
-        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
         doc.text(billingTo.name, 22, currentY);
-        currentY += 5;
+        currentY += 6;
       }
       if (billingTo?.address) {
-        doc.setFont("helvetica", "italic");
+        doc.setFont("helvetica", "normal");
         doc.setFontSize(10);
         doc.text(billingTo.address, 22, currentY);
         currentY += 6;
       }
-
-      currentY += 4;
 
       // Table Columns
       const tableColumns = [
@@ -195,14 +189,14 @@ const AdminPrintQuotation = () => {
         startY: currentY,
         theme: "grid",
         showHead: "everyPage",
-        margin: { left: 16, right: 16 },
+        margin: { left: 22, right: 22 },
         styles: {
-          fontSize: 9.5,
-          cellPadding: 3,
+          fontSize: 11,
+          cellPadding: 2,
           textColor: [0, 0, 0],
           fillColor: [255, 255, 255],
           lineWidth: 0.2,
-          lineColor: [0, 0, 0],
+          lineColor: [220, 220, 220],
           overflow: "linebreak",
         },
         headStyles: {
@@ -211,13 +205,12 @@ const AdminPrintQuotation = () => {
           fontStyle: "bold",
           fontSize: 10,
           lineWidth: 0.2,
-          lineColor: [0, 0, 0],
           halign: "center",
           valign: "middle",
         },
         columnStyles: {
-          0: { cellWidth: 16, halign: "center" },
-          1: { cellWidth: 126, halign: "left" },
+          0: { cellWidth: 12, halign: "center" },
+          1: { cellWidth: 116, halign: "left" },
           2: { cellWidth: 36, halign: "center" },
         },
         willDrawCell: (data) => {
@@ -239,14 +232,15 @@ const AdminPrintQuotation = () => {
 
             lines.forEach((line, idx) => {
               if (idx === 0) {
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(9.5);
+                doc.setFontSize(11);
               } else {
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(9);
+                doc.setFontSize(10);
               }
-              doc.text(line, x, y);
-              y += 4.2;
+              doc.text(line, x, y, { baseline: "bottom" });
+              if (idx === 0) {
+                y += 1.5;
+              }
+              y += 5;
             });
           }
         },
@@ -255,10 +249,19 @@ const AdminPrintQuotation = () => {
         },
       });
 
+      const signWidth = 36;
+      const signHeight =
+        hasSignature && signImg && signImg.dataUrl && signImg.width
+          ? (signImg.height / signImg.width) * signWidth
+          : 0;
+      const sigTopY = pageHeight - 20 - (signHeight || 12);
+
       currentY += 12;
+      if (currentY >= sigTopY - 5) {
+        doc.addPage();
+      }
 
       // Red Note at Bottom Left
-      doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.setTextColor(200, 0, 0);
       doc.text("Note:- GST Extra", 16, pageHeight - 24);

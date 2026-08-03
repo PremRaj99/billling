@@ -45,8 +45,9 @@ const AdminStaffDetail = () => {
   const [attendance, setAttendance] = useState([]);
   const [loans, setLoans] = useState([]);
   const [pdfUrl, setPdfUrl] = useState(null);
+  const [pdfDoc, setPdfDoc] = useState(null);
 
-  const topImageUrl = "/estt.jpg";
+  // const topImageUrl = "/estt.jpg";
   const bottomImageUrl = "/add.jpg";
 
   const getStaff = async () => {
@@ -126,31 +127,31 @@ const AdminStaffDetail = () => {
       let currentY = 8;
 
       // Header Image
-      const topImg = await getImageDetails(topImageUrl);
+      // const topImg = await getImageDetails(topImageUrl);
       const bottomImg = await getImageDetails(bottomImageUrl);
 
       try {
-        doc.addImage(topImg.dataUrl, "JPEG", 8, currentY, 195, 60);
+        // doc.addImage(topImg.dataUrl, "JPEG", 8, currentY, 195, 60);
       } catch (e) {
         console.error("Failed to add top header image:", e);
       }
-      currentY += 68;
+      currentY += 6;
 
       // Document Title & Details
-      doc.setFontSize(13);
+      doc.setFontSize(20);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(0, 0, 0);
-      doc.text("STAFF ATTENDANCE & PAYMENT REPORT", 14, currentY);
+      doc.text("STAFF ATTENDANCE & PAYMENT REPORT", 28, currentY);
       currentY += 8;
 
-      doc.setFontSize(9.5);
+      doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
-      doc.text(`Staff Name:   ${staff?.name || ""}`, 14, currentY);
+      doc.text(`Name:   ${staff?.name || ""}`, 20, currentY);
       doc.text(`Month & Year: ${monthName} ${selectedYear}`, 130, currentY);
       currentY += 5.5;
 
       doc.setFont("helvetica", "normal");
-      doc.text(`Mobile:         ${staff?.mobile || "-"}`, 14, currentY);
+      doc.text(`Mobile:         ${staff?.mobile || "-"}`, 20, currentY);
       const totalPresent = attendance.filter(
         (a) => a.inTime || a.outTime
       ).length;
@@ -162,7 +163,7 @@ const AdminStaffDetail = () => {
         0
       );
       doc.text(`Total Payments: Rs. ${totalLoansAmount}`, 130, currentY);
-      currentY += 8;
+      currentY += 6;
 
       // Table Setup
       const tableRows = monthDays.map((day) => {
@@ -207,8 +208,8 @@ const AdminStaffDetail = () => {
         showHead: "everyPage",
         margin: { left: 14, right: 14 },
         styles: {
-          fontSize: 8.5,
-          cellPadding: { top: 2.5, bottom: 2.5, left: 2, right: 2 },
+          fontSize: 8.85,
+          cellPadding: { top: 2, bottom: 2, left: 2, right: 2 },
           textColor: [0, 0, 0],
           fillColor: [255, 255, 255],
           lineWidth: 0.2,
@@ -293,11 +294,11 @@ const AdminStaffDetail = () => {
       });
 
       // Footer Image
-      try {
-        doc.addImage(bottomImg.dataUrl, "JPEG", 8, pageHeight - 16, 195, 10);
-      } catch (e) {
-        console.error("Failed to add bottom image:", e);
-      }
+      // try {
+      //   doc.addImage(bottomImg.dataUrl, "JPEG", 8, pageHeight - 16, 195, 10);
+      // } catch (e) {
+      //   console.error("Failed to add bottom image:", e);
+      // }
 
       setPdfDoc(doc);
       const pdfBlob = doc.output("blob");
@@ -308,6 +309,10 @@ const AdminStaffDetail = () => {
       message.error("PDF generation error: " + err.message);
     }
   };
+
+  useEffect(() => {
+    generatePdf();
+  }, [staff, attendance, loans, selectedMonth, selectedYear]);
 
   return (
     <div style={{ width: "100%", height: "100vh", position: "relative" }}>

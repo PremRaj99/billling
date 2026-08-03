@@ -252,7 +252,7 @@ const AdminStaffAttendance = () => {
                     </td>
                     <td>
                       <button
-                        className="b-btn py-1"
+                        className="b-btn bg-present py-1"
                         style={{ fontSize: "12px" }}
                         onClick={() => handleSaveAttendance(staffId)}
                       >

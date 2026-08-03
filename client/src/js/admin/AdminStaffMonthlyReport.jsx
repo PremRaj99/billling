@@ -41,7 +41,7 @@ const AdminStaffMonthlyReport = () => {
   const [report, setReport] = useState([]);
   const [pdfUrl, setPdfUrl] = useState(null);
 
-  const topImageUrl = "/estt.jpg";
+  // const topImageUrl = "/estt.jpg";
   const bottomImageUrl = "/add.jpg";
 
   const getMonthlyReport = async () => {
@@ -93,15 +93,15 @@ const AdminStaffMonthlyReport = () => {
       let currentY = 8;
 
       // Header Image
-      const topImg = await getImageDetails(topImageUrl);
+      // const topImg = await getImageDetails(topImageUrl);
       const bottomImg = await getImageDetails(bottomImageUrl);
 
-      try {
-        doc.addImage(topImg.dataUrl, "JPEG", 8, currentY, pageWidth - 16, 45);
-      } catch (e) {
-        console.error("Failed to add top header image:", e);
-      }
-      currentY += 50;
+      // try {
+      //   doc.addImage(topImg.dataUrl, "JPEG", 8, currentY, pageWidth - 16, 45);
+      // } catch (e) {
+      //   console.error("Failed to add top header image:", e);
+      // }
+      currentY += 8;
 
       // Document Title
       doc.setFontSize(13);
@@ -109,7 +109,7 @@ const AdminStaffMonthlyReport = () => {
       doc.setTextColor(0, 0, 0);
       doc.text(
         `MONTHLY STAFF ATTENDANCE REPORT — ${monthName.toUpperCase()} ${selectedYear}`,
-        14,
+        90,
         currentY
       );
       currentY += 8;
@@ -151,7 +151,7 @@ const AdminStaffMonthlyReport = () => {
         theme: "grid",
         margin: { left: 8, right: 8 },
         styles: {
-          fontSize: 7.5,
+          fontSize: 9,
           cellPadding: { top: 3.5, bottom: 3.5, left: 1, right: 1 },
           textColor: [0, 0, 0],
           fillColor: [255, 255, 255],
@@ -229,11 +229,11 @@ const AdminStaffMonthlyReport = () => {
       });
 
       // Footer Banner
-      try {
-        doc.addImage(bottomImg.dataUrl, "JPEG", 8, pageHeight - 14, pageWidth - 16, 10);
-      } catch (e) {
-        console.error("Failed to add bottom image:", e);
-      }
+      // try {
+      //   doc.addImage(bottomImg.dataUrl, "JPEG", 8, pageHeight - 14, pageWidth - 16, 10);
+      // } catch (e) {
+      //   console.error("Failed to add bottom image:", e);
+      // }
 
       setPdfDoc(doc);
       const pdfBlob = doc.output("blob");
@@ -244,6 +244,10 @@ const AdminStaffMonthlyReport = () => {
       message.error("PDF generation error: " + err.message);
     }
   };
+
+  useEffect(() => {
+    generatePdf();
+  }, [report, selectedMonth, selectedYear]);
 
   return (
     <div style={{ width: "100%", height: "100vh", position: "relative" }}>

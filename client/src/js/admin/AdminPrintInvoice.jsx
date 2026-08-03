@@ -63,7 +63,7 @@ const createCancelledStamp = () => {
 
   ctx.setLineDash([]);
 
-  ctx.font = "900 68px Arial, sans-serif";
+  ctx.font = "900 68px Arial";
   ctx.fillStyle = "rgba(220, 53, 69, 0.6)";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -180,7 +180,6 @@ const AdminPrintInvoice = () => {
 
       // Billing To Header
       doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
       doc.setTextColor(0, 0, 0);
       doc.text("Billing To:", 14, currentY);
       currentY += 6;
@@ -189,19 +188,16 @@ const AdminPrintInvoice = () => {
       doc.setFontSize(10);
 
       // Row 1: Name & Invoice No
-      doc.setFont("helvetica", "normal");
       doc.text("Name:", 14, currentY);
-      doc.setFont("helvetica", "bold");
       doc.text(billingTo?.name || "", 42, currentY);
 
-      doc.setFont("helvetica", "normal");
       doc.text("Invoice No:", 135, currentY);
-      doc.setFont("helvetica", "bold");
       doc.text(invoiceId || "", 160, currentY);
+      currentY += 1.5;
+
       currentY += 5.5;
 
       // Row 2: Address & Date
-      doc.setFont("helvetica", "normal");
       doc.text("Address:", 14, currentY);
       doc.text(billingTo?.address || "", 42, currentY);
 
@@ -219,6 +215,8 @@ const AdminPrintInvoice = () => {
 
       doc.text("Date:", 135, currentY);
       doc.text(formattedDate, 160, currentY);
+      currentY += 1.5;
+
       currentY += 5.5;
 
       // Row 3: GST & Mobile
@@ -227,6 +225,8 @@ const AdminPrintInvoice = () => {
 
       doc.text("Mobile:", 135, currentY);
       doc.text(billingTo?.mobile || "", 160, currentY);
+      currentY += 1.5;
+      
       currentY += 5.5;
 
       // Row 4: Order Date (if present)
@@ -240,8 +240,6 @@ const AdminPrintInvoice = () => {
         doc.text(orderDateStr, 160, currentY);
         currentY += 5.5;
       }
-
-      currentY += 2.5;
 
       // Table Rows
       const tableRows = data.map((item, index) => {
@@ -287,10 +285,10 @@ const AdminPrintInvoice = () => {
         startY: currentY,
         theme: "grid",
         showHead: "everyPage",
-        margin: { left: 8, right: 8 },
+        margin: { left: 12, right: 12 },
         styles: {
-          fontSize: 8,
-          cellPadding: { top: 2.5, bottom: 2.5, left: 1.5, right: 1.5 },
+          fontSize: 10,
+          cellPadding: { top: 2, bottom: 2, left: 1.5, right: 1.5 },
           textColor: [0, 0, 0],
           fillColor: [255, 255, 255],
           lineWidth: 0.2,
@@ -306,21 +304,21 @@ const AdminPrintInvoice = () => {
           lineColor: [220, 220, 220],
           halign: "center",
           valign: "middle",
-          cellPadding: { top: 2.5, bottom: 2.5, left: 1, right: 1 },
+          cellPadding: { top: 2, bottom: 2, left: 1, right: 1 },
         },
         columnStyles: {
-          0: { cellWidth: 10, halign: "center" },
-          1: { cellWidth: 46, halign: "left" },
+          0: { cellWidth: 8, halign: "center" },
+          1: { cellWidth: 48, halign: "left" },
           2: { cellWidth: 14, halign: "center" },
           3: { cellWidth: 16, halign: "center" },
           4: { cellWidth: 10, halign: "center" },
-          5: { cellWidth: 15, halign: "center" },
+          5: { cellWidth: 12, halign: "center" },
           6: { cellWidth: 14, halign: "center" },
-          7: { cellWidth: 18, halign: "center" },
+          7: { cellWidth: 14, halign: "center" },
           8: { cellWidth: 11, halign: "center" },
           9: { cellWidth: 14, halign: "center" },
           10: { cellWidth: 11, halign: "center" },
-          11: { cellWidth: 15, halign: "center" },
+          11: { cellWidth: 14, halign: "center" },
         },
         willDrawCell: (d) => {
           if (d.section === "body" && d.column.index === 1) {
@@ -337,18 +335,16 @@ const AdminPrintInvoice = () => {
           ) {
             const lines = d.cell.customTextLines;
             const x = d.cell.x + d.cell.padding("left");
-            let y = d.cell.y + d.cell.padding("top") + 2.6;
+            let y = d.cell.y + d.cell.padding("top") + 3.2;
 
             lines.forEach((line, idx) => {
-              if (idx === 0) {
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(7.5);
-              } else {
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(7);
-              }
               doc.text(line, x, y);
-              y += 3.6;
+              if (idx === 0) {
+                doc.setFontSize(9);
+              } else {
+                doc.setFontSize(9);
+              }
+              y += 4;
             });
           }
         },
@@ -357,8 +353,18 @@ const AdminPrintInvoice = () => {
         },
       });
 
-      currentY += 10;
-      if (currentY + 50 > pageHeight) {
+      const signWidth = 36;
+      const signHeight =
+        hasSignature && signImg && signImg.dataUrl && signImg.width
+          ? (signImg.height / signImg.width) * signWidth
+          : 0;
+
+      const sigTopY = pageHeight - 24 - (signHeight || 12);
+      const estimatedSummaryHeight = 40;
+      const totalNeeded = estimatedSummaryHeight + (signHeight || 15) + 15;
+
+      currentY += 4;
+      if (currentY + totalNeeded > pageHeight - 16) {
         doc.addPage();
         currentY = 15;
       }
@@ -369,7 +375,6 @@ const AdminPrintInvoice = () => {
       doc.setFillColor(255, 0, 0);
       doc.rect(14, bottomStartY, 105, 7, "F");
 
-      doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
       doc.setTextColor(255, 255, 255);
       doc.text("Terms & Conditions:", 18, bottomStartY + 4.8);
@@ -377,7 +382,6 @@ const AdminPrintInvoice = () => {
       doc.setTextColor(0, 0, 0);
       let termsY = bottomStartY + 12;
       doc.setFontSize(8.5);
-      doc.setFont("helvetica", "normal");
       doc.text("Goods Once Sold will not be taken back or exchanged.", 14, termsY);
       termsY += 5;
       doc.text("All disputes subject to HAZARIBAG Jurisdiction only.", 14, termsY);
@@ -397,8 +401,8 @@ const AdminPrintInvoice = () => {
         theme: "grid",
         margin: { left: 126, right: 14 },
         styles: {
-          fontSize: 9,
-          cellPadding: 2.5,
+          fontSize: 10,
+          cellPadding: 2,
           textColor: [0, 0, 0],
           fillColor: [255, 255, 255],
           lineWidth: 0.2,
@@ -417,20 +421,27 @@ const AdminPrintInvoice = () => {
         },
       });
 
+      const totalsFinalY = doc.lastAutoTable
+        ? doc.lastAutoTable.finalY
+        : bottomStartY + 35;
+      const bottomSectionEndY = Math.max(totalsFinalY, termsY);
+
+      // Move signature to next page if bottom summary section extends into signature area
+      if (bottomSectionEndY >= sigTopY - 3) {
+        doc.addPage();
+      }
+
       // Signature & Footer Image
-      doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.setTextColor(0, 0, 0);
       doc.text("Authorized Signature", 145, pageHeight - 22);
 
       if (hasSignature && signImg && signImg.dataUrl) {
         try {
-          const signWidth = 36;
-          const signHeight = (signImg.height / signImg.width) * signWidth;
           doc.addImage(
             signImg.dataUrl,
             "PNG",
-            145,
+            142,
             pageHeight - 24 - signHeight,
             signWidth,
             signHeight

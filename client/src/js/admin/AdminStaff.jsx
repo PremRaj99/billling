@@ -3,7 +3,7 @@ import AdminLayout from "./components/AdminLayout";
 import { message } from "antd";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import VisibilityIcon from "@mui/icons-material/Visibility";
+import PrintIcon from "@mui/icons-material/Print";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "./AdminUsers.css";
@@ -127,7 +127,7 @@ const AdminStaff = () => {
                   </td>
                   <td>
                     <div className="d-flex gap-2">
-                      <VisibilityIcon
+                      <PrintIcon
                         style={{ cursor: "pointer" }}
                         onClick={() =>
                           window.open(`/admin-staff-detail/${s?._id}`, "_blank")
