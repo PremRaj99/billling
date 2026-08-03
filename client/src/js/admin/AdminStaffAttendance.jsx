@@ -28,7 +28,7 @@ const AdminStaffAttendance = () => {
       });
       if (res.data.success) {
         setReport(res.data.data);
-        // Pre-populate time entries from existing attendance or default 10:30 AM / 08:30 PM
+        // Pre-populate time entries from existing attendance or default 10:30 AM / 09:00 PM
         const entries = {};
         const staffIds = [];
         res.data.data.forEach((item) => {
@@ -36,7 +36,7 @@ const AdminStaffAttendance = () => {
           staffIds.push(id);
           entries[id] = {
             inTime: item.attendance?.inTime || "10:30",
-            outTime: item.attendance?.outTime || "20:30",
+            outTime: item.attendance?.outTime || "21:00",
           };
         });
         setTimeEntries(entries);
