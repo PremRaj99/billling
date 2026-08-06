@@ -86,9 +86,10 @@ const AdminPrintQuotation = () => {
       .map((l) => l.trim())
       .filter(Boolean);
     if (lines.length === 0) return "";
+    
     const [mainTitle, ...subItems] = lines;
     if (subItems.length === 0) return mainTitle;
-    const bulletedSubs = subItems.map((sub) => `  • ${sub}`).join("\n");
+    const bulletedSubs = subItems.map((sub) => `• ${sub}`).join("\n");
     return `${mainTitle}\n${bulletedSubs}`;
   };
 
@@ -227,21 +228,21 @@ const AdminPrintQuotation = () => {
             data.cell.customTextLines.length > 0
           ) {
             const lines = data.cell.customTextLines;
-            const x = data.cell.x + data.cell.padding("left");
-            let y = data.cell.y + data.cell.padding("top") + 3.2;
+            let x = data.cell.x + data.cell.padding("left");
+            let y = data.cell.y + data.cell.padding("top") + 3.5;
 
             lines.forEach((line, idx) => {
               if (idx === 0) {
-                doc.setFontSize(11);
+                doc.setFontSize(10.5);
+                doc.setTextColor(0, 0, 0);
               } else {
-                doc.setFontSize(10);
+                doc.setFontSize(10.5);
+                doc.setTextColor(60, 60, 60);
               }
-              doc.text(line, x, y, { baseline: "bottom" });
-              if (idx === 0) {
-                y += 1.5;
-              }
-              y += 5;
+              doc.text(line, x, y);
+              y += idx === 0 ? 5.5 : 4.5;
             });
+            doc.setFont("helvetica", "normal");
           }
         },
         didDrawPage: (d) => {

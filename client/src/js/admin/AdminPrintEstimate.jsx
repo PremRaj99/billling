@@ -256,11 +256,6 @@ const AdminPrintEstimate = () => {
 
             lines.forEach((line, idx) => {
               doc.text(line, x, y);
-              if (idx === 0) {
-                doc.setFontSize(9);
-              } else {
-                doc.setFontSize(9);
-              }
               y += 4;
             });
           }
