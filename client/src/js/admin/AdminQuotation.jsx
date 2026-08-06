@@ -171,6 +171,22 @@ const AdminQuotation = () => {
               <button className="bb-btn m-0 ms-2" onClick={handleClearFilter}>
                 Clear Filter
               </button>
+              <Link
+                target="_blank"
+                to={(() => {
+                  const params = new URLSearchParams();
+                  if (searchQuery) params.append("searchQuery", searchQuery);
+                  if (query) params.append("query", query);
+                  if (selectedDate) params.append("date", selectedDate);
+                  if (selectedMonth !== null && selectedMonth !== undefined && selectedMonth !== "") {
+                    params.append("month", selectedMonth);
+                  }
+                  const queryString = params.toString();
+                  return `/admin-print-all-quotations${queryString ? `?${queryString}` : ""}`;
+                })()}
+              >
+                <button className="b-btn ms-3">Print All</button>
+              </Link>
             </div>
           </div>
           <table className="table user-table">

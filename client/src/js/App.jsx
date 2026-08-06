@@ -16,15 +16,18 @@ import AdminInvoice from "./admin/AdminInvoice";
 import AdminAddInvoice from "./admin/AdminAddInvoice";
 import AdminEditInvoice from "./admin/AdminEditInvoice";
 import AdminPrintInvoice from "./admin/AdminPrintInvoice";
+import AdminPrintAllInvoices from "./admin/AdminPrintAllInvoices";
 import AdminEstimate from "./admin/AdminEstimate";
 import AdminAddEstimate from "./admin/AdminAddEstimate";
 import AdminEditEstimate from "./admin/AdminEditEstimate";
 import AdminPrintEstimate from "./admin/AdminPrintEstimate";
+import AdminPrintAllEstimates from "./admin/AdminPrintAllEstimates";
 // import AdminEstimateHistory from "./admin/AdminEstimateHistory";
 import AdminQuotation from "./admin/AdminQuotation";
 import AdminAddQuotation from "./admin/AdminAddQuotation";
 import AdminEditQuotation from "./admin/AdminEditQuotation";
 import AdminPrintQuotation from "./admin/AdminPrintQuotation";
+import AdminPrintAllQuotations from "./admin/AdminPrintAllQuotations";
 import AdminStaff from "./admin/AdminStaff";
 import AdminAddStaff from "./admin/AdminAddStaff";
 import AdminEditStaff from "./admin/AdminEditStaff";
@@ -120,6 +123,14 @@ function App() {
           }
         />
         <Route
+          path="/admin-print-all-invoices"
+          element={
+            <ProtectedRoute>
+              <AdminPrintAllInvoices />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/admin-estimate"
           element={
             <ProtectedRoute>
@@ -149,6 +160,14 @@ function App() {
           element={
             <ProtectedRoute>
               <AdminPrintEstimate />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin-print-all-estimates"
+          element={
+            <ProtectedRoute>
+              <AdminPrintAllEstimates />
             </ProtectedRoute>
           }
         />
@@ -189,6 +208,14 @@ function App() {
           element={
             <ProtectedRoute>
               <AdminPrintQuotation />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin-print-all-quotations"
+          element={
+            <ProtectedRoute>
+              <AdminPrintAllQuotations />
             </ProtectedRoute>
           }
         />

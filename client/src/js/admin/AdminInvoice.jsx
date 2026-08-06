@@ -270,22 +270,23 @@ const AdminInvoice = () => {
                 <button className="bb-btn py-2 " onClick={clearFilter}>
                   Clear Filter
                 </button>
-                <button
-                  className="b-btn py-2 mx-4"
-                  onClick={() => {
-                    setShowOnlyTable(true);
-                    const originalTitle = document.title;
-
-                    setTimeout(() => {
-                      document.title = "GST Invoice Details"; // Set desired name
-                      window.print();
-                      document.title = originalTitle; // Restore original title
-                      setShowOnlyTable(false); // Revert back to original view
-                    }, 0); // Delay by a few milliseconds
-                  }}
+                <Link
+                  target="_blank"
+                  to={(() => {
+                    const params = new URLSearchParams();
+                    if (searchQuery) params.append("searchQuery", searchQuery);
+                    if (query) params.append("query", query);
+                    if (selectedFrom) params.append("from", selectedFrom);
+                    if (selectedTo) params.append("to", selectedTo);
+                    if (selectedMonth !== null && selectedMonth !== undefined && selectedMonth !== "") {
+                      params.append("month", selectedMonth);
+                    }
+                    const queryString = params.toString();
+                    return `/admin-print-all-invoices${queryString ? `?${queryString}` : ""}`;
+                  })()}
                 >
-                  Print All
-                </button>
+                  <button className="b-btn py-2 mx-4">Print All</button>
+                </Link>
               </div>
             </div>
           )}

@@ -309,114 +309,109 @@ const AdminEstimate = () => {
     getAllInvoice();
   }, []);
 
-  return (
-    <AdminLayout showOnlyTable={showOnlyTable || showOnlyModelTable}>
-      {!showOnlyModelTable && (
-        <div className="admin-users-container ">
-          {/* Only show the header, filters, and tools if not in table-only mode */}
-          {!showOnlyTable && (
-            <>
-              <div className="page-title">
-                <h3 className="m-0">Estimate Bills</h3>
-                <button
-                  className="b-btn"
-                  onClick={() => navigate("/admin-add-estimate")}
-                >
-                  Add New
-                </button>
-              </div>
-              <hr />
-              <div className="tools">
-                <div className="form-fields">
-                  <input
-                    className="mb-2 py-2"
-                    type="search"
-                    name="search"
-                    placeholder="Search by ID"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-                <div className="form-fields">
-                  <input
-                    className="mb-2 py-2"
-                    type="search"
-                    name="searchname"
-                    placeholder="Search by Name"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                  />
-                </div>
-                <div className="form-fields">
-                  <input
-                    type="date"
-                    value={selectedFrom}
-                    onChange={(e) => setSelectedFrom(e.target.value)}
-                  />
-                </div>
-                <div className="form-fields">
-                  <input
-                    type="date"
-                    value={selectedTo}
-                    onChange={(e) => setSelectedTo(e.target.value)}
-                  />
-                </div>
-                <div className="form-fields">
-                  <select
-                    value={selectedMonth === null ? "" : selectedMonth}
-                    onChange={(e) =>
-                      setSelectedMonth(
-                        e.target.value === "" ? null : parseInt(e.target.value)
-                      )
-                    }
-                  >
-                    <option value="">Select Month</option>
-                    {Array.from({ length: 12 }).map((_, index) => (
-                      <option key={index} value={index}>
-                        {new Date(null, index).toLocaleString("default", {
-                          month: "long",
-                        })}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-fields mb-4">
-                  <select
-                    name="balancePayment"
-                    value={selectBalance}
-                    onChange={(e) => setSelectBalance(e.target.value)}
-                  >
-                    <option value="">Filter Balance Payment</option>
-                    <option value="yes">Yes</option>
-                  </select>
-                  <button
-                    className="bb-btn ms-2 m-0"
-                    onClick={handleClearFilter}
-                  >
-                    Clear Filter
-                  </button>
-                </div>
-                <div className="action-buttons">
-                  <button
-                    className="b-btn "
-                    onClick={() => {
-                      setShowOnlyTable(true);
-                      const originalTitle = document.title;
+  const getPrintUrl = () => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.append("searchQuery", searchQuery);
+    if (query) params.append("query", query);
+    if (selectedFrom) params.append("from", selectedFrom);
+    if (selectedTo) params.append("to", selectedTo);
+    if (selectedMonth !== null && selectedMonth !== undefined && selectedMonth !== "") {
+      params.append("month", selectedMonth);
+    }
+    if (selectBalance) params.append("balance", selectBalance);
+    const queryString = params.toString();
+    return `/admin-print-all-estimates${queryString ? `?${queryString}` : ""}`;
+  };
 
-                      setTimeout(() => {
-                        document.title = "Estimate Details"; // Set desired name
-                        window.print();
-                        document.title = originalTitle; // Restore original title
-                        setShowOnlyTable(false); // Revert back to original view
-                      }, 0); // Delay by a few milliseconds
-                    }}
-                  >
-                    Print All
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
+  return (
+    <AdminLayout>
+      <div className="admin-users-container">
+        <div className="page-title">
+          <h3 className="m-0">Estimate Bills</h3>
+          <button
+            className="b-btn"
+            onClick={() => navigate("/admin-add-estimate")}
+          >
+            Add New
+          </button>
+        </div>
+        <hr />
+        <div className="tools">
+          <div className="form-fields">
+            <input
+              className="mb-2 py-2"
+              type="search"
+              name="search"
+              placeholder="Search by ID"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="form-fields">
+            <input
+              className="mb-2 py-2"
+              type="search"
+              name="searchname"
+              placeholder="Search by Name"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <div className="form-fields">
+            <input
+              type="date"
+              value={selectedFrom}
+              onChange={(e) => setSelectedFrom(e.target.value)}
+            />
+          </div>
+          <div className="form-fields">
+            <input
+              type="date"
+              value={selectedTo}
+              onChange={(e) => setSelectedTo(e.target.value)}
+            />
+          </div>
+          <div className="form-fields">
+            <select
+              value={selectedMonth === null ? "" : selectedMonth}
+              onChange={(e) =>
+                setSelectedMonth(
+                  e.target.value === "" ? null : parseInt(e.target.value)
+                )
+              }
+            >
+              <option value="">Select Month</option>
+              {Array.from({ length: 12 }).map((_, index) => (
+                <option key={index} value={index}>
+                  {new Date(null, index).toLocaleString("default", {
+                    month: "long",
+                  })}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="form-fields mb-4">
+            <select
+              name="balancePayment"
+              value={selectBalance}
+              onChange={(e) => setSelectBalance(e.target.value)}
+            >
+              <option value="">Filter Balance Payment</option>
+              <option value="yes">Yes</option>
+            </select>
+            <button
+              className="bb-btn ms-2 m-0"
+              onClick={handleClearFilter}
+            >
+              Clear Filter
+            </button>
+          </div>
+          <div className="action-buttons">
+            <Link target="_blank" to={getPrintUrl()}>
+              <button className="b-btn">Print All</button>
+            </Link>
+          </div>
+        </div>
 
           <table
             className={`table user-table ${showOnlyTable ? "expanded" : ""}`}
@@ -565,7 +560,6 @@ const AdminEstimate = () => {
             </tfoot>
           </table>
         </div>
-      )}
       {/* Modal for Showing Bill Details */}
       <Modal
         title={`Details for Bill ${selectedBill?.estimateId || ""}`}
@@ -891,24 +885,12 @@ const AdminEstimate = () => {
                   ))}
               </tbody>
             </table>
-            {!showOnlyModelTable && (
-              <button
-                className="b-btn my-4"
-                onClick={() => {
-                  setShowOnlyModelTable(true);
-                  const originalTitle = document.title;
-
-                  setTimeout(() => {
-                    document.title = "Estimate Details"; // Set desired name
-                    window.print();
-                    document.title = originalTitle; // Restore original title
-                    setShowOnlyModelTable(false); // Revert back to original view
-                  }, 0); // Delay by a few milliseconds
-                }}
-              >
-                Print All
-              </button>
-            )}
+            <Link
+              target="_blank"
+              to={`/admin-print-estimate/${selectedBill?.estimateId}`}
+            >
+              <button className="b-btn my-4">Print Estimate</button>
+            </Link>
           </div>
         ) : (
           <p style={{ textAlign: "center", color: "#999" }}>
